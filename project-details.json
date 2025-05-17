@@ -1,0 +1,35 @@
+{
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "generate": "node src/scripts/generateModule.js"
+  },
+  "imports": {
+    "#root/*": "./*.js",
+    "#libs/*": "./src/libs/*.lib.js",
+    "#utils/*": "./src/utils/*.util.js",
+    "#routes/*": "./src/routes/*.route.js",
+    "#controllers/*": "./src/controllers/*.controller.js",
+    "#services/*": "./src/services/*.service.js",
+    "#configs/*": "./src/configs/*.config.js",
+    "#models/*": "./src/models/*.model.js",
+    "#middlewares/*": "./src/middlewares/*.middleware.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.800.0",
+    "@aws-sdk/s3-request-presigner": "^3.800.0",
+    "bcryptjs": "^3.0.2",
+    "chalk": "^5.4.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "envalid": "^8.0.0",
+    "express": "^4.21.2",
+    "http-status": "^2.1.0",
+    "joi": "^17.13.3",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.2",
+    "node-cron": "^3.0.3",
+    "pg": "^8.15.6",
+    "sequelize": "^6.37.7"
+  }
+}
