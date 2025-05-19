@@ -1,16 +1,26 @@
+import User from "#models/user";
 import BaseModel from "#models/base";
 import { DataTypes } from "sequelize";
 
 class Notification extends BaseModel {}
 
 Notification.initialize({
-  name: {
-    type: DataTypes.STRING,
+  notification: {
+    type: DataTypes.TEXT,
     allowNull: false,
-    //WARN: Unique constraint missing
   },
-  permissions: {
-    type: DataTypes.JSON,
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: User,
+      key: User.primaryKeyAttribute,
+    },
+  },
+  readByUser: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
   },
 });
 
