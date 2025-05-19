@@ -9,7 +9,7 @@ router
   .route("/login")
   .post(asyncHandler(UserController.login.bind(UserController)));
 
-router.use(authentication);
+// router.use(authentication);
 
 router
   .route("/:id?")

@@ -1,8 +1,10 @@
-import BaseModel from "#models/base";
 import { hash } from "bcryptjs";
+import BaseModel from "#models/base";
 import { DataTypes } from "sequelize";
 
-class User extends BaseModel {}
+class User extends BaseModel {
+  static genderEnumArr = ["Male", "Female", "Other"];
+}
 
 User.initialize(
   {
@@ -38,6 +40,10 @@ User.initialize(
       validate: {
         is: /^[0-9+\- ]{7,15}$/, // basic phone validation
       },
+    },
+    gender: {
+      type: DataTypes.ENUM(User.genderEnumArr),
+      allowNull: false,
     },
     password: {
       type: DataTypes.STRING,
