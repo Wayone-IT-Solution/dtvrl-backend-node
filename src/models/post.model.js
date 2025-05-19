@@ -21,6 +21,10 @@ Post.initialize({
     type: DataTypes.TEXT,
     allowNull: false,
   },
+  likes: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
 });
 
 export default Post;

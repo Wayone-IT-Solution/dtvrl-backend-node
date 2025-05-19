@@ -50,6 +50,11 @@ User.initialize(
       type: DataTypes.INTEGER,
       allowNull: true,
     },
+    isPrivate: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
   },
   {
     hooks: {
