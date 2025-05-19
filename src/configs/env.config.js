@@ -16,6 +16,7 @@ const env = cleanEnv(process.env, {
   AWS_S3_REGION: str(),
   AWS_BUCKET_NAME: str(),
   AWS_S3_ENDPOINT: str(),
+  NODE_ENV: str({ default: "Development" }),
 });
 
 export default env;

@@ -2,8 +2,8 @@ import { Model } from "sequelize";
 import httpStatus from "http-status";
 import AppError from "#utils/appError";
 import sequelize from "#configs/database";
-import { session } from "#middlewares/requestSession";
 import { uploadFile } from "#configs/awsS3";
+import { session } from "#middlewares/requestSession";
 
 class BaseModel extends Model {
   static excludedBranchModels = ["Branch", "City", "State", "Country", "Auth"];
