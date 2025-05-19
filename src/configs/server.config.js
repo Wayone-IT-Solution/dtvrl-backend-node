@@ -17,6 +17,7 @@ await sequelize.authenticate();
 
 // Request logging middleware
 server.use(morgan(logger));
+server.use(cors());
 
 // Middleware to parse incoming JSON request bodies
 server.use(multer().any());
