@@ -17,6 +17,18 @@ class UserController extends BaseController {
     const loggedInUser = await this.Service.getDocById(userId);
     sendResponse(httpStatus.OK, res, loggedInUser);
   }
+
+  static async update(req, res, next) {
+    const id = session.get("userId");
+    const data = await this.Service.update(id, req.body);
+    sendResponse(httpStatus.OK, res, data, "User updated successfully");
+  }
+
+  static async deleteDoc(req, res, next) {
+    const id = session.get("userId");
+    await this.Service.deleteDoc(id);
+    sendResponse(httpStatus.OK, res, null, "User deleted successfully");
+  }
 }
 
 export default UserController;

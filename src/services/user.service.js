@@ -31,16 +31,6 @@ class UserService extends BaseService {
     const token = createToken(payload);
     return { token };
   }
-
-  static async update(id, data) {
-    id = session.get("userId");
-    return await super.update(id, data);
-  }
-
-  static async deleteDoc(id) {
-    id = session.get("userId");
-    return await super.deleteDoc(id);
-  }
 }
 
 export default UserService;
