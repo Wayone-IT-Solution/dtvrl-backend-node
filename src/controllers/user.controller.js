@@ -1,6 +1,7 @@
 import httpStatus from "http-status";
 import UserService from "#services/user";
 import BaseController from "#controllers/base";
+import { session } from "#middlewares/requestSession";
 import { sendResponse } from "#utils/response";
 
 class UserController extends BaseController {
