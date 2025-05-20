@@ -4,6 +4,7 @@ import { compare } from "bcryptjs";
 import AppError from "#utils/appError";
 import BaseService from "#services/base";
 import { createToken } from "#utils/jwt";
+import { session } from "#middlewares/requestSession";
 
 class UserService extends BaseService {
   static Model = User;
@@ -29,6 +30,16 @@ class UserService extends BaseService {
 
     const token = createToken(payload);
     return { token };
+  }
+
+  static async update(id, data) {
+    id = session.get("userId");
+    return await super.update(id, data);
+  }
+
+  static async deleteDoc(id) {
+    id = session.get("userId");
+    return await super.deleteDoc(id);
   }
 }
 
