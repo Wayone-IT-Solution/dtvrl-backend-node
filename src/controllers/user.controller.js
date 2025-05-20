@@ -10,6 +10,12 @@ class UserController extends BaseController {
     const tokenData = await this.Service.login(req.body);
     sendResponse(httpStatus.OK, res, tokenData, "Logged in successfully");
   }
+
+  static async getCurrentUser(req, res, next) {
+    const userId = session.get("userId");
+    const loggedInUser = await this.Service.getDocById(userId);
+    sendResponse(httpStatus.OK, res, loggedInUser);
+  }
 }
 
 export default UserController;

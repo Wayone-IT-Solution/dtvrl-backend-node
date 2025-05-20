@@ -66,6 +66,10 @@ User.initialize(
       allowNull: false,
       defaultValue: "token",
     },
+    profile: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
   },
   {
     hooks: {

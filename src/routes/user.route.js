@@ -9,7 +9,11 @@ router
   .route("/login")
   .post(asyncHandler(UserController.login.bind(UserController)));
 
-// router.use(authentication);
+router.use(authentication);
+
+router
+  .route("/get-current-user")
+  .get(asyncHandler(UserController.getCurrentUser.bind(UserController)));
 
 router
   .route("/:id?")
