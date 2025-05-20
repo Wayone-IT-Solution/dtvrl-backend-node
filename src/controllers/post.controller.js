@@ -1,3 +1,4 @@
+import httpStatus from "http-status";
 import PostService from "#services/post";
 import BaseController from "#controllers/base";
 import { sendResponse } from "#utils/response";
@@ -17,7 +18,7 @@ class PostController extends BaseController {
       },
     ];
 
-    const fields = [`COUNT ("likeData"."id") AS likes`, "image", "caption"];
+    const fields = ["image", "caption"];
 
     const options = { lookups, fields };
 
