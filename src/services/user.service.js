@@ -28,7 +28,7 @@ class UserService extends BaseService {
     };
 
     const token = createToken(payload);
-    return token;
+    return { token };
   }
 }
 

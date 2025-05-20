@@ -61,6 +61,11 @@ User.initialize(
       allowNull: false,
       defaultValue: false,
     },
+    refreshToken: {
+      type: DataTypes.TEXT,
+      allowNull: false,
+      defaultValue: "token",
+    },
   },
   {
     hooks: {

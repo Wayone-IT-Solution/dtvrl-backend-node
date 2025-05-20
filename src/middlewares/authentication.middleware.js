@@ -19,7 +19,7 @@ export async function authentication(req, res, next) {
 
     const payload = verifyToken({ token });
 
-    session.set("userType", payload.userType);
+    session.set("userId", payload.userId);
     session.set("payload", payload);
 
     next();
