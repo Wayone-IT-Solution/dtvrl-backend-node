@@ -12,6 +12,8 @@ router
   .get(asyncHandler(UserFollowController.get.bind(UserFollowController)))
   .post(asyncHandler(UserFollowController.create.bind(UserFollowController)))
   .put(asyncHandler(UserFollowController.update.bind(UserFollowController)))
-  .delete(asyncHandler(UserFollowController.deleteDoc.bind(UserFollowController)));
+  .delete(
+    asyncHandler(UserFollowController.deleteDoc.bind(UserFollowController)),
+  );
 
 export default router;

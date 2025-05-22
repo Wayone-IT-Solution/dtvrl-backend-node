@@ -6,7 +6,7 @@ class UserFollow extends BaseModel {}
 
 UserFollow.initialize(
   {
-    followerId: {
+    userId: {
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
@@ -14,7 +14,7 @@ UserFollow.initialize(
         key: User.primaryKeyAttribute,
       },
     },
-    followingId: {
+    otherId: {
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
@@ -27,7 +27,7 @@ UserFollow.initialize(
     indexes: [
       {
         unique: true,
-        fields: ["followerId", "followingId"], // prevents duplicate follows
+        fields: ["userId", "otherId"], // prevents duplicate follows
       },
     ],
   },
