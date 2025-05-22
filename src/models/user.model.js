@@ -70,6 +70,11 @@ User.initialize(
       type: DataTypes.TEXT,
       allowNull: true,
     },
+    dob: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: new Date(),
+    },
   },
   {
     hooks: {

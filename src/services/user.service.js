@@ -31,6 +31,11 @@ class UserService extends BaseService {
     const token = createToken(payload);
     return { token };
   }
+
+  static async update(id, data) {
+    delete data.password;
+    return await super.update(id, data);
+  }
 }
 
 export default UserService;
