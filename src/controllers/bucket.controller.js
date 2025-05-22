@@ -15,7 +15,7 @@ class BucketController extends BaseController {
   static async get(req, res, next) {
     const userId = session.get("userId");
     req.query.userId = userId;
-    req.qyery.pagination = "false";
+    req.query.pagination = "false";
     return await super.get(req, res, next);
   }
 }
