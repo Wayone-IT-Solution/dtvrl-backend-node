@@ -14,8 +14,14 @@ Bucket.initialize({
       key: User.primaryKeyAttribute,
     },
   },
-  locations: {
-    type: DataTypes.JSON,
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  visited: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
   },
 });
 
