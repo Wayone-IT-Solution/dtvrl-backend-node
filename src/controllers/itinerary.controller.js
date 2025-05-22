@@ -10,6 +10,12 @@ class ItineraryController extends BaseController {
     req.body.userId = userId;
     return await super.create(req, res, next);
   }
+
+  static async get(req, res, next) {
+    const userId = session.get("userId");
+    req.query.userId = userId;
+    return await super.get(req, res, next);
+  }
 }
 
 export default ItineraryController;

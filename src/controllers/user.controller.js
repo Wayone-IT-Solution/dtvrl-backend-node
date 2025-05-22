@@ -7,6 +7,14 @@ import { sendResponse } from "#utils/response";
 class UserController extends BaseController {
   static Service = UserService;
 
+  static async get(req, res, next) {
+    const { id } = req.params;
+
+    if (!id) {
+      return await super.get(req, res, next);
+    }
+  }
+
   static async login(req, res, next) {
     const tokenData = await this.Service.login(req.body);
     sendResponse(httpStatus.OK, res, tokenData, "Logged in successfully");

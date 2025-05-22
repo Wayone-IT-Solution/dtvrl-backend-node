@@ -33,6 +33,9 @@ Itinerary.initialize({
       key: User.primaryKeyAttribute,
     },
   },
+  description: {
+    type: DataTypes.TEXT,
+  },
 });
 
 export default Itinerary;
