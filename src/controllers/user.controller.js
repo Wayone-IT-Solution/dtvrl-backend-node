@@ -1,8 +1,10 @@
 import httpStatus from "http-status";
 import UserService from "#services/user";
+import UserFollow from "#models/userFollow";
 import BaseController from "#controllers/base";
-import { session } from "#middlewares/requestSession";
 import { sendResponse } from "#utils/response";
+import { session } from "#middlewares/requestSession";
+import AppError from "#utils/appError";
 
 class UserController extends BaseController {
   static Service = UserService;
@@ -22,8 +24,40 @@ class UserController extends BaseController {
 
   static async getCurrentUser(req, res, next) {
     const userId = session.get("userId");
-    const loggedInUser = await this.Service.getDocById(userId);
-    sendResponse(httpStatus.OK, res, loggedInUser);
+    const user = await this.Service.Model.findOne({
+      where: { id: userId },
+      attributes: {
+        include: [
+          // Follower count (other users who follow this user)
+          [
+            literal(`(
+            SELECT COUNT(*)
+            FROM "${UserFollow.tableName}" AS "followers"
+            WHERE "followers"."otherId" = "User"."id"
+          )`),
+            "followerCount",
+          ],
+          // Following count (this user follows other users)
+          [
+            literal(`(
+            SELECT COUNT(*)
+            FROM "${UserFollow.tableName}" AS "followings"
+            WHERE "followings"."userId" = "User"."id"
+          )`),
+            "followingCount",
+          ],
+        ],
+      },
+    });
+
+    if (!user) {
+      throw new AppError({
+        status: false,
+        message: "User not found",
+        httpStatus: httpStatus.FORBIDDEN,
+      });
+    }
+    sendResponse(httpStatus.OK, res, user);
   }
 
   static async update(req, res, next) {

@@ -8,7 +8,7 @@ Bucket.initialize({
   userId: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    unique: true,
+    unique: false,
     refernces: {
       model: User,
       key: User.primaryKeyAttribute,
