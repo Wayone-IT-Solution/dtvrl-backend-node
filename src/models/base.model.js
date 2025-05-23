@@ -292,7 +292,7 @@ class BaseModel extends Model {
       const filesPromises = [];
       files.forEach((file) => {
         if (attributes[file.fieldname] && attributes[file.fieldname].file) {
-          const fileName = `${this.constructor.updatedName()}/${file.fieldname}/${doc.save}`;
+          const fileName = `${this.constructor.updatedName()}/${file.fieldname}/${doc.id}`;
           filesPromises.push(uploadFile(fileName, file.buffer, file.mimetype));
         }
       });
