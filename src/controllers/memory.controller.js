@@ -10,6 +10,11 @@ class MemoryController extends BaseController {
     req.body.userId = userId;
     return await super.create(req, res, next);
   }
+
+  static async get(req, res, next) {
+    req.query.userId = session.get("userId");
+    return await super.get(req, res, next);
+  }
 }
 
 export default MemoryController;
