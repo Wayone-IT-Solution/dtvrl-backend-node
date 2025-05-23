@@ -5,6 +5,7 @@ import BaseController from "#controllers/base";
 import { sendResponse } from "#utils/response";
 import { session } from "#middlewares/requestSession";
 import AppError from "#utils/appError";
+import { literal } from "sequelize";
 
 class UserController extends BaseController {
   static Service = UserService;
