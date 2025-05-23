@@ -283,6 +283,8 @@ class BaseModel extends Model {
   async save() {
     const transaction = session.get("transaction");
 
+    const doc = await super.save({ transaction });
+
     const files = session.get("files");
     if (files?.length) {
       const attributes = this.constructor.rawAttributes;
@@ -290,7 +292,7 @@ class BaseModel extends Model {
       const filesPromises = [];
       files.forEach((file) => {
         if (attributes[file.fieldname] && attributes[file.fieldname].file) {
-          const fileName = `${this.constructor.updatedName()}/${file.fieldname}/${this.dataValues.createdAt}`;
+          const fileName = `${this.constructor.updatedName()}/${file.fieldname}/${doc.save}`;
           filesPromises.push(uploadFile(fileName, file.buffer, file.mimetype));
         }
       });
