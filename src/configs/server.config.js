@@ -5,6 +5,7 @@ import express from "express";
 import router from "#routes/index";
 import logger from "#configs/logger";
 import httpStatus from "http-status";
+import s3Client from "#configs/awsS3";
 import sequelize from "#configs/database";
 import { globalErrorHandler } from "#utils/error";
 import requestSessionMiddleware from "#middlewares/requestSession";
@@ -13,7 +14,7 @@ const server = express();
 
 // Ensure the database connection is established before starting the server
 await sequelize.authenticate();
-await sequelize.sync({ alter: true });
+// await sequelize.sync({ alter: true });
 
 // Request logging middleware
 server.use(morgan(logger));

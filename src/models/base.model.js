@@ -298,6 +298,7 @@ class BaseModel extends Model {
       if (filesPromises.length) {
         try {
           const fileLinks = await Promise.all(filesPromises);
+          console.log(fileLinks);
         } catch (err) {
           //WARN: Handle file upload revert here
         }

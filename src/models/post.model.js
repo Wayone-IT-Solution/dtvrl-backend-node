@@ -19,6 +19,7 @@ Post.initialize({
   },
   image: {
     type: DataTypes.TEXT,
+    file: true,
     allowNull: true,
   },
 });
