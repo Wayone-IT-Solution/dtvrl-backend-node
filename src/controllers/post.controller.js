@@ -17,9 +17,20 @@ class PostController extends BaseController {
         localField: "id",
         foreignField: "postId",
       },
+      {
+        from: "Users",
+        as: "userData",
+        localField: "userId",
+        foreignField: "id",
+      },
     ];
 
-    const fields = ["image", "caption"];
+    const fields = [
+      "image",
+      "caption",
+      "userData.profile AS profile",
+      "userData.username AS username",
+    ];
 
     const options = { lookups, fields };
 
