@@ -294,15 +294,20 @@ class BaseModel extends Model {
         if (attributes[file.fieldname] && attributes[file.fieldname].file) {
           const fileName = `${this.constructor.updatedName()}/${file.fieldname}/${doc.id}`;
           filesPromises.push(uploadFile(fileName, file.buffer, file.mimetype));
+          this[file.fieldname] = fileName;
+          this.id = doc.id;
         }
       });
 
       if (filesPromises.length) {
         try {
-          const fileLinks = await Promise.all(filesPromises);
-          console.log(fileLinks);
+          await Promise.all(filesPromises);
         } catch (err) {
-          //WARN: Handle file upload revert here
+          throw new AppError({
+            status: false,
+            message: "Failed to upload file",
+            httpStatus: httpStatus.INTERNAL_SERVER_ERROR,
+          });
         }
       }
     }

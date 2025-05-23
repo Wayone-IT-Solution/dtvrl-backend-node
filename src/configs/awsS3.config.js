@@ -61,7 +61,7 @@ export const deleteFile = async (fileKey) => {
     });
 
     await s3Client.send(command);
-    return `File ${fileKey} deleted successfully`;
+    return fileKey;
   } catch (error) {
     console.error("Error deleting file:", error);
     throw error;
