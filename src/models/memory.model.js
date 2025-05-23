@@ -27,10 +27,6 @@ Memory.initialize({
     type: DataTypes.DATE,
     allowNull: false,
   },
-  description: {
-    type: DataTypes.TEXT,
-    allowNull: false,
-  },
   coverImage: {
     type: DataTypes.TEXT,
     file: true,
