@@ -13,7 +13,7 @@ class UserService extends BaseService {
   static async login(userData) {
     const { email, password } = userData;
 
-    const user = await this.getDoc({ email });
+    let user = await this.getDoc({ email });
     const verification = await compare(password, user.password);
 
     if (!verification) {
@@ -29,8 +29,13 @@ class UserService extends BaseService {
       email: user.email,
     };
 
+    user = user.toJSON();
+
+    delete user.password;
+    user.token = token;
+
     const token = createToken(payload);
-    return { token };
+    return user;
   }
 
   static async update(id, data) {
