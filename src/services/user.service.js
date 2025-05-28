@@ -28,13 +28,13 @@ class UserService extends BaseService {
       userId: user.id,
       email: user.email,
     };
+    const token = createToken(payload);
 
     user = user.toJSON();
 
     delete user.password;
     user.token = token;
 
-    const token = createToken(payload);
     return user;
   }
 
