@@ -26,8 +26,11 @@ class PostController extends BaseController {
     ];
 
     const fields = [
+      "id",
       "image",
+      "userId",
       "caption",
+      "createdAt",
       "userData.profile AS profile",
       "userData.username AS username",
     ];
