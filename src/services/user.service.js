@@ -13,6 +13,8 @@ class UserService extends BaseService {
   static async login(userData) {
     const { email, password } = userData;
 
+    console.log(userData);
+
     let user = await this.getDoc({ email });
     const verification = await compare(password, user.password);
 
