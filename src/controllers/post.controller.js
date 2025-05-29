@@ -3,6 +3,8 @@ import PostService from "#services/post";
 import BaseController from "#controllers/base";
 import { sendResponse } from "#utils/response";
 import { session } from "#middlewares/requestSession";
+import PostLike from "#models/postLike";
+import User from "#models/user";
 
 class PostController extends BaseController {
   static Service = PostService;
@@ -31,15 +33,35 @@ class PostController extends BaseController {
       "userId",
       "caption",
       "createdAt",
-      "userData.profile AS profile",
       "userData.username AS username",
+      "userData.profile AS profileImage",
+      // "COUNT(likeData.id) AS likeCount",
     ];
 
     const options = { lookups, fields };
 
+    const data = await this.Service.Model.findAll({
+      where: req.query,
+      include: [
+        {
+          model: User,
+          as: "user",
+          attributes: ["id", "username", "profile"],
+        },
+      ],
+    });
+
     const posts = await this.Service.get(id, req.query, options);
 
-    sendResponse(httpStatus.OK, res, posts, "Posts fetched successfully");
+    if (!id) {
+      const { result } = posts;
+
+      const postIds = result.map((post) => post.id);
+
+      // const likeCount = PostLike.sequelize.query();
+    }
+
+    sendResponse(httpStatus.OK, res, data, "Posts fetched successfully");
   }
 
   static async create(req, res, next) {

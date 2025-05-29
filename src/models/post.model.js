@@ -24,4 +24,9 @@ Post.initialize({
   },
 });
 
+Post.belongsTo(User, {
+  foreignKey: "userId",
+  as: "user",
+});
+
 export default Post;
