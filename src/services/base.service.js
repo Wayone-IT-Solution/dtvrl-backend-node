@@ -114,12 +114,35 @@ class BaseService {
 
   static async get(id, filters, options = {}) {
     if (!id) {
-      return await this.Model.findAll({
-        where: filters,
-        ...options,
-      });
+      const { count, rows } = await this.Model.findAndCountAll(options);
+
+      let totalItems = count;
+      if (options.group && Array.isArray(count)) {
+        totalItems = count.length;
+      } else if (typeof count !== "number") {
+        console.warn(
+          "BaseService.get: 'count' from findAndCountAll was not a number or an array with group. Defaulting totalItems to 0 or rows.length based on context.",
+        );
+        totalItems = Array.isArray(rows) ? rows.length : 0; // Or handle as an error
+      }
+
+      const limit = options.limit;
+      const offset = options.offset;
+      const validLimit = typeof limit === "number" && limit > 0 ? limit : 10; // Default to 10 if limit is invalid
+      const currentPage =
+        typeof offset === "number" && offset >= 0 ? offset / validLimit + 1 : 1;
+      const totalPages = Math.ceil(totalItems / validLimit);
+
+      return {
+        result: rows,
+        pagination: {
+          totalItems,
+          totalPages,
+          currentPage,
+        },
+      };
     }
-    return await this.Model.findDocById(id);
+    await this.Model.findDocById(id);
   }
 
   static async getDoc(filters, options = {}) {
