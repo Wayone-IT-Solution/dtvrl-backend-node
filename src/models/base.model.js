@@ -275,6 +275,8 @@ class BaseModel extends Model {
   async save() {
     const transaction = session.get("transaction");
 
+    const doc = await super.save({ transaction });
+
     const files = session.get("files");
     if (files?.length) {
       const attributes = this.constructor.rawAttributes;
@@ -283,11 +285,13 @@ class BaseModel extends Model {
         "image/jpeg",
         "image/png",
         "image/gif",
-        "image/webp", // WebP is already an image format
+        "image/webp",
         "application/pdf",
       ];
 
-      files.forEach(async (file) => {
+      const filesPromises = [];
+
+      for (const file of files) {
         if (
           attributes[file.fieldname] &&
           attributes[file.fieldname].file &&
@@ -302,45 +306,26 @@ class BaseModel extends Model {
                 0,
                 originalFileName.lastIndexOf("."),
               ) || originalFileName;
-            let extension = `.${originalFileName.split(".").pop() || "bin"}`; // Default extension
+            let extension = `.${originalFileName.split(".").pop() || "bin"}`;
 
-            // Check if it's an image and NOT a PDF, then try to convert to WebP
             if (
               file.mimetype.startsWith("image/") &&
               file.mimetype !== "application/pdf"
             ) {
-              // --- WebP Conversion (using sharp as an example) ---
-              // Make sure sharp is installed and required: npm install sharp
               try {
-                console.log(
-                  `Attempting to convert ${file.fieldname} to WebP...`,
-                );
                 bufferToUpload = await sharp(file.buffer)
-                  .webp({ quality: 80 }) // Adjust quality as needed
+                  .webp({ quality: 80 })
                   .toBuffer();
                 mimeTypeToUpload = "image/webp";
-                extension = ".webp"; // Update extension for WebP
-                console.log(
-                  `${file.fieldname} converted to WebP successfully.`,
-                );
+                extension = ".webp";
               } catch (conversionError) {
                 console.error(
                   `Error converting ${file.fieldname} to WebP, uploading original:`,
                   conversionError,
                 );
-                // If conversion fails, bufferToUpload and mimeTypeToUpload remain original
-              }
-              // --- End of WebP Conversion Example ---
-              // For now, if sharp is commented out, it will just use the original image
-              if (mimeTypeToUpload !== "image/webp") {
-                // if not already webp or converted
                 extension = `.${originalFileName.split(".").pop() || "jpg"}`;
-              } else {
-                extension = ".webp";
               }
             } else if (file.mimetype === "application/pdf") {
-              // For PDFs, we use the original buffer and mimetype
-              console.log(`Processing PDF file: ${file.fieldname}`);
               extension = ".pdf";
             }
 
@@ -348,14 +333,22 @@ class BaseModel extends Model {
               this.dataValues.createdAt instanceof Date
                 ? this.dataValues.createdAt.toISOString().replace(/:/g, "-")
                 : Date.now();
+
             const fileName = `${this.constructor.updatedName()}/${file.fieldname}/${baseName}_${timestamp}${extension}`;
 
             console.log(
               `Preparing to upload: ${fileName} with mimetype: ${mimeTypeToUpload}`,
             );
-            filesPromises.push(
-              uploadFile(fileName, bufferToUpload, mimeTypeToUpload),
+
+            const uploadResult = await uploadFile(
+              fileName,
+              bufferToUpload,
+              mimeTypeToUpload,
             );
+            filesPromises.push(uploadResult);
+
+            this[file.fieldname] = fileName;
+            this.id = doc.id;
           } catch (error) {
             console.error(`Error processing file ${file.fieldname}:`, error);
           }
@@ -367,16 +360,17 @@ class BaseModel extends Model {
             `Skipping file ${file.fieldname} due to invalid mime type: ${file.mimetype}. Expected one of: ${allowedMimeTypes.join(", ")}`,
           );
         }
-      });
+      }
+
+      // You likely don’t need this anymore since uploads are already awaited individually
       if (filesPromises.length) {
         try {
           const fileLinks = await Promise.all(filesPromises);
         } catch (err) {
-          //WARN: Handle file upload revert here
+          // WARN: Handle file upload revert here
         }
       }
     }
-
     if (!transaction) {
       throw new AppError({
         status: false,
@@ -384,7 +378,7 @@ class BaseModel extends Model {
         httpStatus: httpStatus.INTERNAL_SERVER_ERROR,
       });
     }
-    await super.save({ transaction });
+    const newDoc = await super.save({ transaction });
     return this;
   }
 

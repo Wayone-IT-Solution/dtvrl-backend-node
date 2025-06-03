@@ -29,7 +29,7 @@ export const uploadFile = async (fileKey, fileBuffer, contentType) => {
     });
 
     await s3Client.send(command);
-    return `File ${fileKey} uploaded successfully`;
+    return fileKey;
   } catch (error) {
     console.error("Error uploading file:", error);
     throw error;
