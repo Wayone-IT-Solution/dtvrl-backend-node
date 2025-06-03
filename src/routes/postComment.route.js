@@ -5,13 +5,14 @@ import { authentication } from "#middlewares/authentication";
 
 const router = express.Router();
 
-// router.use(authentication);
+router.use(authentication);
 
 router
   .route("/:id?")
   .get(asyncHandler(PostCommentController.get.bind(PostCommentController)))
   .post(asyncHandler(PostCommentController.create.bind(PostCommentController)))
-  .put(asyncHandler(PostCommentController.update.bind(PostCommentController)))
-  .delete(asyncHandler(PostCommentController.deleteDoc.bind(PostCommentController)));
+  .delete(
+    asyncHandler(PostCommentController.deleteDoc.bind(PostCommentController)),
+  );
 
 export default router;

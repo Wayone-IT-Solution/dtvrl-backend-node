@@ -61,7 +61,18 @@ class PostController extends BaseController {
     const options = this.Service.getOptions(req.query, customOptions);
     const data = await this.Service.get(null, req.query, options);
 
-    sendResponse(httpStatus.OK, res, data, "Posts fetched successfully");
+    const processedResults = data.map((item) => ({
+      ...item.get({ plain: true }), // Get plain object
+      likeCount: parseInt(item.likeCount, 10),
+      commentCount: parseInt(item.commentCount, 10),
+    }));
+
+    sendResponse(
+      httpStatus.OK,
+      res,
+      processedResults,
+      "Posts fetched successfully",
+    );
   }
 
   static async create(req, res, next) {
