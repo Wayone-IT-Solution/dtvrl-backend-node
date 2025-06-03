@@ -28,6 +28,7 @@ class PostController extends BaseController {
         },
         {
           model: User,
+          attributes: ["id", "name", "username", "profile", "email"],
         },
         {
           model: PostComment,
