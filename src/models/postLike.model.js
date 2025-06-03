@@ -34,4 +34,8 @@ PostLike.initialize(
   },
 );
 
+Post.hasMany(PostLike, {
+  foreignKey: "postId",
+});
+
 export default PostLike;

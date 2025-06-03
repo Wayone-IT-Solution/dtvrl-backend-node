@@ -28,4 +28,8 @@ PostComment.initialize({
   },
 });
 
+Post.hasMany(PostComment, {
+  foreignKey: "postId",
+});
+
 export default PostComment;

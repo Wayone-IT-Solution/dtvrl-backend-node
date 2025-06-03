@@ -1,10 +1,12 @@
+import User from "#models/user";
 import httpStatus from "http-status";
+import PostLike from "#models/postLike";
 import PostService from "#services/post";
+import PostComment from "#models/postComment";
 import BaseController from "#controllers/base";
 import { sendResponse } from "#utils/response";
+import { Sequelize } from "sequelize";
 import { session } from "#middlewares/requestSession";
-import PostLike from "#models/postLike";
-import User from "#models/user";
 
 class PostController extends BaseController {
   static Service = PostService;
@@ -12,54 +14,52 @@ class PostController extends BaseController {
   static async get(req, res, next) {
     const { id } = req.params;
 
-    const lookups = [
-      {
-        from: "PostLikes",
-        as: "likeData",
-        localField: "id",
-        foreignField: "postId",
-      },
-      {
-        from: "Users",
-        as: "userData",
-        localField: "userId",
-        foreignField: "id",
-      },
-    ];
+    if (id) {
+      return await this.Service.getDocById(id);
+    }
 
-    const fields = [
-      "id",
-      "image",
-      "userId",
-      "caption",
-      "createdAt",
-      "userData.username AS username",
-      "userData.profile AS profileImage",
-      // "COUNT(likeData.id) AS likeCount",
-    ];
-
-    const options = { lookups, fields };
-
-    const data = await this.Service.Model.findAll({
-      where: req.query,
+    const customOptions = {
       include: [
         {
+          model: PostLike,
+          attributes: [],
+          duplicating: false,
+          required: false,
+        },
+        {
           model: User,
-          as: "user",
-          attributes: ["id", "username", "profile"],
+        },
+        {
+          model: PostComment,
+          attributes: [],
+          duplicating: false,
+          required: false,
         },
       ],
-    });
+      attributes: [
+        "id",
+        "image",
+        "caption",
+        "createdAt",
+        [Sequelize.fn("COUNT", Sequelize.col("PostLikes.id")), "likeCount"],
+        [
+          Sequelize.fn("COUNT", Sequelize.col("PostComments.id")),
+          "commentCount",
+        ],
+      ],
+      group: [
+        "Post.id",
+        "User.id",
+        "Post.image",
+        "Post.caption",
+        "User.profile",
+        "User.username",
+        "Post.createdAt",
+      ],
+    };
 
-    const posts = await this.Service.get(id, req.query, options);
-
-    if (!id) {
-      const { result } = posts;
-
-      const postIds = result.map((post) => post.id);
-
-      // const likeCount = PostLike.sequelize.query();
-    }
+    const options = this.Service.getOptions(req.query, customOptions);
+    const data = await this.Service.get(null, req.query, options);
 
     sendResponse(httpStatus.OK, res, data, "Posts fetched successfully");
   }
