@@ -4,6 +4,7 @@ import AppError from "#utils/appError";
 import sequelize from "#configs/database";
 import { session } from "#middlewares/requestSession";
 import { uploadFile } from "#configs/awsS3";
+import sharp from "sharp";
 
 class BaseModel extends Model {
   static excludedBranchModels = ["Branch", "City", "State", "Country", "Auth"];
@@ -278,14 +279,95 @@ class BaseModel extends Model {
     if (files?.length) {
       const attributes = this.constructor.rawAttributes;
 
-      const filesPromises = [];
-      files.forEach((file) => {
-        if (attributes[file.fieldname] && attributes[file.fieldname].file) {
-          const fileName = `${this.constructor.updatedName()}/${file.fieldname}/${this.dataValues.createdAt}`;
-          filesPromises.push(uploadFile(fileName, file.buffer, file.mimetype));
+      const allowedMimeTypes = [
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "image/webp", // WebP is already an image format
+        "application/pdf",
+      ];
+
+      files.forEach(async (file) => {
+        if (
+          attributes[file.fieldname] &&
+          attributes[file.fieldname].file &&
+          allowedMimeTypes.includes(file.mimetype)
+        ) {
+          try {
+            let bufferToUpload = file.buffer;
+            let mimeTypeToUpload = file.mimetype;
+            const originalFileName = file.originalname || "file";
+            let baseName =
+              originalFileName.substring(
+                0,
+                originalFileName.lastIndexOf("."),
+              ) || originalFileName;
+            let extension = `.${originalFileName.split(".").pop() || "bin"}`; // Default extension
+
+            // Check if it's an image and NOT a PDF, then try to convert to WebP
+            if (
+              file.mimetype.startsWith("image/") &&
+              file.mimetype !== "application/pdf"
+            ) {
+              // --- WebP Conversion (using sharp as an example) ---
+              // Make sure sharp is installed and required: npm install sharp
+              try {
+                console.log(
+                  `Attempting to convert ${file.fieldname} to WebP...`,
+                );
+                bufferToUpload = await sharp(file.buffer)
+                  .webp({ quality: 80 }) // Adjust quality as needed
+                  .toBuffer();
+                mimeTypeToUpload = "image/webp";
+                extension = ".webp"; // Update extension for WebP
+                console.log(
+                  `${file.fieldname} converted to WebP successfully.`,
+                );
+              } catch (conversionError) {
+                console.error(
+                  `Error converting ${file.fieldname} to WebP, uploading original:`,
+                  conversionError,
+                );
+                // If conversion fails, bufferToUpload and mimeTypeToUpload remain original
+              }
+              // --- End of WebP Conversion Example ---
+              // For now, if sharp is commented out, it will just use the original image
+              if (mimeTypeToUpload !== "image/webp") {
+                // if not already webp or converted
+                extension = `.${originalFileName.split(".").pop() || "jpg"}`;
+              } else {
+                extension = ".webp";
+              }
+            } else if (file.mimetype === "application/pdf") {
+              // For PDFs, we use the original buffer and mimetype
+              console.log(`Processing PDF file: ${file.fieldname}`);
+              extension = ".pdf";
+            }
+
+            const timestamp =
+              this.dataValues.createdAt instanceof Date
+                ? this.dataValues.createdAt.toISOString().replace(/:/g, "-")
+                : Date.now();
+            const fileName = `${this.constructor.updatedName()}/${file.fieldname}/${baseName}_${timestamp}${extension}`;
+
+            console.log(
+              `Preparing to upload: ${fileName} with mimetype: ${mimeTypeToUpload}`,
+            );
+            filesPromises.push(
+              uploadFile(fileName, bufferToUpload, mimeTypeToUpload),
+            );
+          } catch (error) {
+            console.error(`Error processing file ${file.fieldname}:`, error);
+          }
+        } else if (
+          attributes[file.fieldname] &&
+          attributes[file.fieldname].file
+        ) {
+          console.warn(
+            `Skipping file ${file.fieldname} due to invalid mime type: ${file.mimetype}. Expected one of: ${allowedMimeTypes.join(", ")}`,
+          );
         }
       });
-
       if (filesPromises.length) {
         try {
           const fileLinks = await Promise.all(filesPromises);
