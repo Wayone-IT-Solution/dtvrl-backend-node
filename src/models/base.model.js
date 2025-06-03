@@ -2,8 +2,8 @@ import { Model } from "sequelize";
 import httpStatus from "http-status";
 import AppError from "#utils/appError";
 import sequelize from "#configs/database";
-import { uploadFile } from "#configs/awsS3";
 import { session } from "#middlewares/requestSession";
+import { uploadFile } from "#configs/awsS3";
 
 class BaseModel extends Model {
   static excludedBranchModels = ["Branch", "City", "State", "Country", "Auth"];
@@ -235,36 +235,27 @@ class BaseModel extends Model {
     return pagination !== "false" && pagination !== false
       ? {
           result,
-          pagination: {
-            totalItems: count,
-            totalPages: Math.ceil(count / limit),
-            itemsPerPage: limit,
-            currentPage: page,
-          },
+          total: count,
         }
       : result;
   }
 
-  static async findDocById(id, allowNull = false) {
+  static async findDocById(id, options = {}) {
     this.idChecker(id);
 
-    const data = await this.findByPk(id);
-    if (allowNull) {
-      return data;
-    }
-    if (!data) {
-      throw new AppError({
-        status: false,
-        message: `${this.name} not found with id ${id}`,
-        httpStatus: httpStatus.BAD_REQUEST,
-      });
-    }
-
-    return data;
+    return await this.findDoc({ id }, options);
   }
 
-  static async findDoc(filters, allowNull = false) {
-    const doc = await this.findOne({ where: filters });
+  static async findDoc(filters, options = {}) {
+    const { allowNull = false } = options;
+
+    delete options.allowNull;
+
+    const doc = await this.findOne({
+      where: filters,
+      ...options,
+    });
+
     if (doc || allowNull) {
       return doc;
     }
@@ -283,8 +274,6 @@ class BaseModel extends Model {
   async save() {
     const transaction = session.get("transaction");
 
-    const doc = await super.save({ transaction });
-
     const files = session.get("files");
     if (files?.length) {
       const attributes = this.constructor.rawAttributes;
@@ -292,22 +281,16 @@ class BaseModel extends Model {
       const filesPromises = [];
       files.forEach((file) => {
         if (attributes[file.fieldname] && attributes[file.fieldname].file) {
-          const fileName = `${this.constructor.updatedName()}/${file.fieldname}/${doc.id}`;
+          const fileName = `${this.constructor.updatedName()}/${file.fieldname}/${this.dataValues.createdAt}`;
           filesPromises.push(uploadFile(fileName, file.buffer, file.mimetype));
-          this[file.fieldname] = fileName;
-          this.id = doc.id;
         }
       });
 
       if (filesPromises.length) {
         try {
-          await Promise.all(filesPromises);
+          const fileLinks = await Promise.all(filesPromises);
         } catch (err) {
-          throw new AppError({
-            status: false,
-            message: "Failed to upload file",
-            httpStatus: httpStatus.INTERNAL_SERVER_ERROR,
-          });
+          //WARN: Handle file upload revert here
         }
       }
     }
