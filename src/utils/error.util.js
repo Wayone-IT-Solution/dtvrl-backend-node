@@ -10,16 +10,10 @@ import { session } from "#middlewares/requestSession";
 
 /**
  * Global error handler function that logs errors and handles different types of Sequelize errors.
- *
- * @param {Error} error - The error object to be handled
- * @param {Object} req - The request object
- * @param {Object} res - The response object
- * @param {Function} next - The next middleware function
- * @return {Object} - The response object with appropriate error handling
  */
 export const globalErrorHandler = async (error, req, res, next) => {
   const transaction = await session.get("transaction");
-  transaction ? await transaction.rollback() : null;
+  if (transaction) await transaction.rollback();
 
   console.log(error);
 
@@ -29,7 +23,7 @@ export const globalErrorHandler = async (error, req, res, next) => {
       status: false,
       message: "Validation Error",
       errors: error.errors.map((err) => ({
-        field: err.path, // Field name
+        field: err.path,
         message: err.message,
       })),
     });
@@ -41,27 +35,25 @@ export const globalErrorHandler = async (error, req, res, next) => {
       status: false,
       message: "Foreign Key Constraint Error",
       errors: {
-        field: error.fields[0], // Field name causing the error
-        message: `${error.fields[0]} is invalid or doesn't exist`,
+        field: error.fields?.[0] || error.index || "unknown",
+        detail: error.original?.detail || "Invalid foreign key reference",
       },
     });
   }
 
   // Handle unique constraint errors
   if (error instanceof UniqueConstraintError) {
-    const field = error.errors[0]?.path; // Extract field name from the error
-
     return res.status(409).json({
       status: false,
-      message: `${field} already exists`, // Dynamic message with field
+      message: `${error.errors[0]?.path || "Field"} already exists`,
       errors: error.errors.map((err) => ({
-        field: err.path, // Field name
+        field: err.path,
         message: err.message,
       })),
     });
   }
 
-  // Handle other Sequelize errors (e.g., DatabaseError)
+  // Handle other Sequelize database errors
   if (error instanceof DatabaseError) {
     return res.status(500).json({
       status: false,
@@ -79,20 +71,21 @@ export const globalErrorHandler = async (error, req, res, next) => {
     });
   }
 
-  // Handle other known errors (e.g., custom HTTP errors)
+  // Handle known HTTP errors
   if (error.httpStatus && error.message) {
-    return res
-      .status(error.httpStatus)
-      .json({ status: false, message: error.message });
+    return res.status(error.httpStatus).json({
+      status: false,
+      message: error.message,
+    });
   }
 
-  // For unknown errors, send a generic message
-  if (typeof error === "string") next(error);
+  // For string errors passed via `next("some error")`
+  if (typeof error === "string") return next(error);
 
-  // Handle generic errors
+  // Default fallback
   return res.status(500).json({
     status: false,
     message: "Internal Server Error",
-    details: env.NODE_ENV === "development" ? error.message : undefined, // Expose details only in development
+    details: env.NODE_ENV === "development" ? error.message : undefined,
   });
 };
