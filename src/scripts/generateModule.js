@@ -36,10 +36,7 @@ ${modelName}.initialize({
     type: DataTypes.STRING,
     allowNull: false,
     //WARN: Unique constraint missing
-  },
-  permissions: {
-    type: DataTypes.JSON,
-  },
+  },  
 });
 
 export default ${modelName};
