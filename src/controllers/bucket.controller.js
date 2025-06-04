@@ -1,7 +1,6 @@
 import BucketService from "#services/bucket";
 import BaseController from "#controllers/base";
 import { session } from "#middlewares/requestSession";
-import AppError from "#utils/appError";
 
 class BucketController extends BaseController {
   static Service = BucketService;
