@@ -334,11 +334,7 @@ class BaseModel extends Model {
                 ? this.dataValues.createdAt.toISOString().replace(/:/g, "-")
                 : Date.now();
 
-            const fileName = `${this.constructor.updatedName()}/${file.fieldname}/${baseName}_${timestamp}${extension}`;
-
-            console.log(
-              `Preparing to upload: ${fileName} with mimetype: ${mimeTypeToUpload}`,
-            );
+            const fileName = `${this.constructor.updatedName()}/${file.fieldname}/${baseName}/${doc.id}${extension}`;
 
             const uploadResult = await uploadFile(
               fileName,
@@ -381,7 +377,6 @@ class BaseModel extends Model {
     const newDoc = await super.save({ transaction });
     return this;
   }
-
   static getSearchableFields(allowedFields) {
     return Object.keys(allowedFields).filter(
       (field) => allowedFields[field].searchable,
