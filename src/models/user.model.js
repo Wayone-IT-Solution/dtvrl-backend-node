@@ -33,6 +33,11 @@ User.initialize(
         isEmail: true,
       },
     },
+    phoneCountryCode: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: "+91",
+    },
     phone: {
       type: DataTypes.STRING,
       allowNull: false,
