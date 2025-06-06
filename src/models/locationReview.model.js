@@ -5,27 +5,42 @@ import Location from "#models/location";
 
 class LocationReview extends BaseModel {}
 
-LocationReview.initialize({
-  userId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: User,
-      key: User.primaryKeyAttribute,
+LocationReview.initialize(
+  {
+    userId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: User,
+        key: User.primaryKeyAttribute,
+      },
+    },
+    locationId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: Location,
+        key: Location.primaryKeyAttribute,
+      },
+    },
+    review: {
+      type: DataTypes.TEXT,
+      allowNull: false,
     },
   },
-  locationId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: Location,
-      key: Location.primaryKeyAttribute,
-    },
+  {
+    indexes: [
+      {
+        name: "user_location_index",
+        unique: false,
+        fields: ["userId", "locationId"],
+      },
+    ],
   },
-  review: {
-    type: DataTypes.TEXT,
-    allowNull: false,
-  },
+);
+
+Location.hasMany(LocationReview, {
+  foreignKey: "locationId",
 });
 
 export default LocationReview;
