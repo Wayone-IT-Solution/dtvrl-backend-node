@@ -27,7 +27,7 @@ class LocationController extends BaseController {
     };
 
     const options = this.Service.getOptions({ lat, lng }, customOptions);
-    let data = await this.Service.get(id, { lat, lng }, options);
+    let data = await this.Service.get(null, { lat, lng }, options);
 
     if (data.length > data.length !== 1) {
       throw new AppError({
