@@ -9,7 +9,7 @@ import AppError from "#utils/appError";
 class LocationController extends BaseController {
   static Service = LocationService;
 
-  static async get(req, res, next) {
+  static async create(req, res, next) {
     const { lng, lat, name } = req.body;
 
     const customOptions = {

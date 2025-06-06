@@ -9,7 +9,8 @@ const router = express.Router();
 
 router
   .route("/:id?")
-  .post(asyncHandler(LocationController.get.bind(LocationController)))
+  .get(asyncHandler(LocationController.get.bind(LocationController)))
+  .post(asyncHandler(LocationController.create.bind(LocationController)))
   .put(asyncHandler(LocationController.update.bind(LocationController)))
   .delete(asyncHandler(LocationController.deleteDoc.bind(LocationController)));
 
