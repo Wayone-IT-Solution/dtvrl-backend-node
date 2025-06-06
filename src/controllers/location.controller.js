@@ -1,8 +1,8 @@
+import httpStatus from "http-status";
 import LocationService from "#services/location";
 import BaseController from "#controllers/base";
 import LocationReview from "#models/locationReview";
 import { sendResponse } from "#utils/response";
-import httpStatus from "http-status";
 
 class LocationController extends BaseController {
   static Service = LocationService;
