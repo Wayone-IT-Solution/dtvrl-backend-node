@@ -10,7 +10,7 @@ class LocationController extends BaseController {
   static Service = LocationService;
 
   static async get(req, res, next) {
-    const { lng, lat, name } = req.query;
+    const { lng, lat, name } = req.body;
 
     const customOptions = {
       include: [
