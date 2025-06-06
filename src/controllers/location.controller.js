@@ -10,7 +10,7 @@ class LocationController extends BaseController {
   static Service = LocationService;
 
   static async get(req, res, next) {
-    const { lng, lat } = req.query;
+    const { lng, lat, name } = req.query;
 
     const customOptions = {
       include: [
@@ -38,7 +38,7 @@ class LocationController extends BaseController {
     }
 
     if (!data.length) {
-      data = await this.Service.create({ lat, lng });
+      data = await this.Service.create({ lat, lng, name });
     }
 
     sendResponse(
