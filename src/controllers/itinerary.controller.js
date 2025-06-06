@@ -49,7 +49,6 @@ class ItineraryController extends BaseController {
       });
     }
 
-
     if (itinerary.userId !== userId) {
       const shared = itinerary.ItineraryShareLists.find(
         (ele) => ele.userId === userId,
@@ -72,6 +71,53 @@ class ItineraryController extends BaseController {
       itinerary,
       `${this.Service.Model.updatedName()} updated successfully`,
     );
+  }
+
+  static async shareWithAll(req, res, next) {
+    const { id } = req;
+    const [itinerary, existing] = await Promise.all([
+      this.Service.getDocById(id, { raw: true }),
+      this.Service.getDoc({ parentId: id }, { raw: true, allowNull: true }),
+    ]);
+
+    if (existing) {
+      throw new AppError({
+        status: false,
+        message: "This itinerary already has a public version",
+        httpStatus: httpStatus.CONFLICT,
+      });
+    }
+
+    if (itinerary.public) {
+      throw new AppError({
+        status: false,
+        message: "Itinerary is already public",
+        httpStatus: httpStatus.CONFLICT,
+      });
+    }
+
+    if (itinerary.public && !existing) {
+      throw new AppError({
+        status: false,
+        message: "Please try again",
+        httpStatus: httpStatus.BAD_REQUEST,
+      });
+    }
+
+    const excludedOptions = ["id", "createdAt", "updatedAt", "deletedAt"];
+
+    const newData = {};
+
+    for (const key in itinerary) {
+      if (excludedOptions.includes(key)) continue;
+      newData[key] = itinerary[key];
+    }
+
+    newData.public = true;
+    newData.parentId = id;
+
+    const newItinerary = await this.Service.create(newData);
+    return newItinerary;
   }
 }
 

@@ -13,7 +13,7 @@ Itinerary.initialize({
   amount: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false,
-	defaultValue:0,
+    defaultValue: 0,
   },
   startDate: {
     type: DataTypes.DATE,
@@ -25,6 +25,15 @@ Itinerary.initialize({
     type: DataTypes.BOOLEAN,
     allowNull: false,
     defaultValue: false,
+  },
+  parentId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    unique: true,
+    references: {
+      model: Itinerary,
+      key: Itinerary.primaryKeyAttribute,
+    },
   },
   userId: {
     type: DataTypes.INTEGER,
