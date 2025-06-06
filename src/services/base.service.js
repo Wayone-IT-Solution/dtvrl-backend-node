@@ -120,9 +120,6 @@ class BaseService {
       if (options.group && Array.isArray(count)) {
         totalItems = count.length;
       } else if (typeof count !== "number") {
-        console.warn(
-          "BaseService.get: 'count' from findAndCountAll was not a number or an array with group. Defaulting totalItems to 0 or rows.length based on context.",
-        );
         totalItems = Array.isArray(rows) ? rows.length : 0; // Or handle as an error
       }
 
@@ -142,7 +139,7 @@ class BaseService {
         },
       };
     }
-    await this.Model.findDocById(id);
+    return await this.Model.findDocById(id);
   }
 
   static async getDoc(filters, options = {}) {

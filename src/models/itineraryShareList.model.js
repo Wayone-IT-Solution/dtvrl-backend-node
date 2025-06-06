@@ -24,4 +24,8 @@ ItineraryShareList.initialize({
   },
 });
 
+Itinerary.hasMany(ItineraryShareList, {
+  foreignKey: "itineraryId",
+});
+
 export default ItineraryShareList;

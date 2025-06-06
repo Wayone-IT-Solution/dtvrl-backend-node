@@ -31,6 +31,14 @@ Memory.initialize({
     type: DataTypes.TEXT,
     file: true,
   },
+  latitude: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  longitude: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
 });
 
 export default Memory;
