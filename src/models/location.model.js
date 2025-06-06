@@ -21,7 +21,7 @@ Location.initialize(
     indexes: [
       {
         name: "lat_lng_index",
-        unique: false,
+        unique: true,
         fields: ["lat", "lng"],
       },
     ],
