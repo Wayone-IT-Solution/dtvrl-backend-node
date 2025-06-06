@@ -27,24 +27,37 @@ class LocationController extends BaseController {
     };
 
     const options = this.Service.getOptions({ lat, lng }, customOptions);
+
+    // Check if location already exists
     let data = await this.Service.get(null, { lat, lng }, options);
 
-    if (data.length && data.length !== 1) {
+    if (data.length > 1) {
       throw new AppError({
         status: false,
-        message: "Location co-ordinates mismatch, please report to admin",
+        message: "Duplicate location entries detected. Please report to admin.",
         httpStatus: httpStatus.CONFLICT,
       });
     }
 
+    // If not found, try to create
     if (!data.length) {
-      data = await this.Service.create({ lat, lng, name });
+      try {
+        const created = await this.Service.create({ lat, lng, name });
+        data = [created];
+      } catch (err) {
+        if (err.name === "SequelizeUniqueConstraintError") {
+          // In case of race condition, get the existing entry again
+          data = await this.Service.get(null, { lat, lng }, options);
+        } else {
+          throw err; // Rethrow any other error
+        }
+      }
     }
 
     sendResponse(
       httpStatus.OK,
       res,
-      data,
+      data[0],
       `${this.Service.Model.updatedName()} fetched successfully`,
     );
   }
