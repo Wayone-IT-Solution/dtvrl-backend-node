@@ -14,7 +14,7 @@ const server = express();
 
 // Ensure the database connection is established before starting the server
 await sequelize.authenticate();
-// await sequelize.sync({ alter: true });
+await sequelize.sync({ alter: true });
 
 // Request logging middleware
 server.use(morgan(logger));
