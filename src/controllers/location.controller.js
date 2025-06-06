@@ -30,6 +30,7 @@ class LocationController extends BaseController {
 
     // Check if location already exists
     let data = await this.Service.get(null, { lat, lng }, options);
+    console.log(1, data);
 
     if (data.length > 1) {
       throw new AppError({
@@ -44,6 +45,7 @@ class LocationController extends BaseController {
       try {
         const created = await this.Service.create({ lat, lng, name });
         data = [created];
+        console.log(2, data);
       } catch (err) {
         if (err.name === "SequelizeUniqueConstraintError") {
           // In case of race condition, get the existing entry again
@@ -53,6 +55,8 @@ class LocationController extends BaseController {
         }
       }
     }
+
+    console.log(3, data);
 
     sendResponse(
       httpStatus.OK,
