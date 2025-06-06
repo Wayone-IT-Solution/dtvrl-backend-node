@@ -75,32 +75,15 @@ class ItineraryController extends BaseController {
 
   static async shareWithAll(req, res, next) {
     const { id } = req;
-    const [itinerary, existing] = await Promise.all([
+    const [itinerary] = await Promise.all([
       this.Service.getDocById(id, { raw: true }),
-      this.Service.getDoc({ parentId: id }, { raw: true, allowNull: true }),
     ]);
-
-    if (existing) {
-      throw new AppError({
-        status: false,
-        message: "This itinerary already has a public version",
-        httpStatus: httpStatus.CONFLICT,
-      });
-    }
 
     if (itinerary.public) {
       throw new AppError({
         status: false,
         message: "Itinerary is already public",
         httpStatus: httpStatus.CONFLICT,
-      });
-    }
-
-    if (itinerary.public && !existing) {
-      throw new AppError({
-        status: false,
-        message: "Please try again",
-        httpStatus: httpStatus.BAD_REQUEST,
       });
     }
 
@@ -114,7 +97,6 @@ class ItineraryController extends BaseController {
     }
 
     newData.public = true;
-    newData.parentId = id;
 
     const newItinerary = await this.Service.create(newData);
     return newItinerary;

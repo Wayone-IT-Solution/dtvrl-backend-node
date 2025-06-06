@@ -80,6 +80,9 @@ User.initialize(
       allowNull: false,
       defaultValue: new Date(),
     },
+    bio: {
+      type: DataTypes.TEXT,
+    },
   },
   {
     hooks: {

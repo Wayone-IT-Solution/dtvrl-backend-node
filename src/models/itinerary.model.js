@@ -26,15 +26,6 @@ Itinerary.initialize({
     allowNull: false,
     defaultValue: false,
   },
-  parentId: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    unique: true,
-    references: {
-      model: Itinerary,
-      key: Itinerary.primaryKeyAttribute,
-    },
-  },
   userId: {
     type: DataTypes.INTEGER,
     allowNull: false,
