@@ -27,6 +27,14 @@ LocationReview.initialize(
       type: DataTypes.TEXT,
       allowNull: false,
     },
+    rating: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      validate: {
+        min: 1,
+        max: 5,
+      },
+    },
   },
   {
     indexes: [
@@ -41,6 +49,10 @@ LocationReview.initialize(
 
 Location.hasMany(LocationReview, {
   foreignKey: "locationId",
+});
+
+LocationReview.belongsTo(User, {
+  foreignKey: "userId",
 });
 
 export default LocationReview;

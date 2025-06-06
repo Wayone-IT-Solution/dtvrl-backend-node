@@ -1,24 +1,46 @@
+import User from "#models/user";
 import httpStatus from "http-status";
 import LocationService from "#services/location";
 import BaseController from "#controllers/base";
 import LocationReview from "#models/locationReview";
 import { sendResponse } from "#utils/response";
+import AppError from "#utils/appError";
 
 class LocationController extends BaseController {
   static Service = LocationService;
 
   static async get(req, res, next) {
-    const { id } = req.params;
+    const { lng, lat } = req.query;
+
     const customOptions = {
       include: [
         {
           model: LocationReview,
+          include: [
+            {
+              model: User,
+              attributes: ["id", "name"],
+            },
+          ],
         },
       ],
     };
 
-    const options = this.Service.getOptions(req.query, customOptions);
-    const data = await this.Service.get(id, req.query, options);
+    const options = this.Service.getOptions({ lat, lng }, customOptions);
+    let data = await this.Service.get(id, { lat, lng }, options);
+
+    if (data.length > data.length !== 1) {
+      throw new AppError({
+        status: false,
+        message: "Location co-ordinates mismatch, please report to admin",
+        httpStatus: httpStatus.CONFLICT,
+      });
+    }
+
+    if (!data.length) {
+      data = await this.Service.create({ lat, lng });
+    }
+
     sendResponse(
       httpStatus.OK,
       res,
