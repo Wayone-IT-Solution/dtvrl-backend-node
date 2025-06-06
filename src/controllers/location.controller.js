@@ -29,7 +29,7 @@ class LocationController extends BaseController {
     const options = this.Service.getOptions({ lat, lng }, customOptions);
     let data = await this.Service.get(null, { lat, lng }, options);
 
-    if (data.length > data.length !== 1) {
+    if (data.length && data.length !== 1) {
       throw new AppError({
         status: false,
         message: "Location co-ordinates mismatch, please report to admin",
