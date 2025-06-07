@@ -1,4 +1,3 @@
-import User from "#models/user";
 import httpStatus from "http-status";
 import LocationService from "#services/location";
 import BaseController from "#controllers/base";
@@ -6,7 +5,6 @@ import LocationReview from "#models/locationReview";
 import { sendResponse } from "#utils/response";
 import AppError from "#utils/appError";
 import { fn, col, literal } from "sequelize";
-import LocationReviewLike from "#models/locationReviewLike";
 
 class LocationController extends BaseController {
   static Service = LocationService;
