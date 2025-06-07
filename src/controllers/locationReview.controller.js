@@ -2,6 +2,8 @@ import LocationReviewService from "#services/locationReview";
 import BaseController from "#controllers/base";
 import { session } from "#middlewares/requestSession";
 import User from "#models/user";
+import LocationReviewComment from "#models/locationReviewComment";
+import LocationReviewLike from "#models/locationReviewLike";
 import { sendResponse } from "#utils/response";
 import httpStatus from "http-status";
 
@@ -18,12 +20,29 @@ class LocationReviewController extends BaseController {
     const { id } = req.params;
 
     const customOptions = {
+      attributes: {
+        include: [
+          [fn("COUNT", col("LocationReviewLikes.id")), "likeCount"],
+          [fn("COUNT", col("LocationReviewComments.id")), "commentCount"],
+        ],
+      },
       include: [
+        {
+          model: LocationReviewLike,
+          attributes: [], // No need to return the full like rows
+          required: false, // LEFT JOIN
+        },
+        {
+          model: LocationReviewComment,
+          attributes: [], // No need to return the full comment rows
+          required: false, // LEFT JOIN
+        },
         {
           model: User,
           attributes: ["id", "name", "profile"],
         },
       ],
+      group: ["LocationReview.id"],
     };
 
     const options = this.Service.getOptions(req.query, customOptions);
