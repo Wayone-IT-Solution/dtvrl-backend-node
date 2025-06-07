@@ -14,6 +14,10 @@ LocationReview.initialize(
         model: User,
         key: User.primaryKeyAttribute,
       },
+      unique: {
+        name: "user_location_index",
+        msg: "You have already reviewed this location.",
+      },
     },
     locationId: {
       type: DataTypes.INTEGER,
@@ -35,12 +39,17 @@ LocationReview.initialize(
         max: 5,
       },
     },
+    recommended: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
   },
   {
     indexes: [
       {
         name: "user_location_index",
-        unique: false,
+        unique: true,
         fields: ["userId", "locationId"],
       },
     ],

@@ -8,70 +8,58 @@ import {
 } from "sequelize";
 import { session } from "#middlewares/requestSession";
 
-/**
- * Global error handler function that logs errors and handles different types of Sequelize errors.
- */
 export const globalErrorHandler = async (error, req, res, next) => {
   const transaction = await session.get("transaction");
   if (transaction) await transaction.rollback();
 
   console.log(error);
 
-  // Handle validation errors
+  // Validation error
   if (error instanceof ValidationError) {
+    const messages = error.errors
+      .map((e) => `${e.path}: ${e.message}`)
+      .join(", ");
     return res.status(400).json({
       status: false,
-      message: "Validation Error",
-      errors: error.errors.map((err) => ({
-        field: err.path,
-        message: err.message,
-      })),
+      message: `Validation Error: ${messages}`,
     });
   }
 
-  // Handle foreign key errors
+  // Foreign key error
   if (error instanceof ForeignKeyConstraintError) {
+    const field = error.fields[0];
     return res.status(400).json({
       status: false,
-      message: "Foreign Key Constraint Error",
-      errors: {
-        field: error.fields?.[0] || error.index || "unknown",
-        detail: error.original?.detail || "Invalid foreign key reference",
-      },
+      message: `Invalid foreign key: ${field}`,
     });
   }
 
-  // Handle unique constraint errors
+  // Unique constraint error
   if (error instanceof UniqueConstraintError) {
+    const field = error.errors[0]?.path;
     return res.status(409).json({
       status: false,
-      message: `${error.errors[0]?.path || "Field"} already exists`,
-      errors: error.errors.map((err) => ({
-        field: err.path,
-        message: err.message,
-      })),
+      message: `${field} already exists`,
     });
   }
 
-  // Handle other Sequelize database errors
+  // Database error
   if (error instanceof DatabaseError) {
     return res.status(500).json({
       status: false,
-      message: "Database error occurred",
-      details: error.message,
+      message: `Database Error: ${error.message}`,
     });
   }
 
-  // Handle connection errors
+  // Connection error
   if (error instanceof ConnectionError) {
     return res.status(503).json({
       status: false,
-      message: "Database connection error",
-      details: error.message,
+      message: `Database Connection Error: ${error.message}`,
     });
   }
 
-  // Handle known HTTP errors
+  // Custom HTTP error
   if (error.httpStatus && error.message) {
     return res.status(error.httpStatus).json({
       status: false,
@@ -79,13 +67,20 @@ export const globalErrorHandler = async (error, req, res, next) => {
     });
   }
 
-  // For string errors passed via `next("some error")`
-  if (typeof error === "string") return next(error);
+  // Plain string error
+  if (typeof error === "string") {
+    return res.status(500).json({
+      status: false,
+      message: error,
+    });
+  }
 
-  // Default fallback
+  // Unknown fallback error
   return res.status(500).json({
     status: false,
-    message: "Internal Server Error",
-    details: env.NODE_ENV === "development" ? error.message : undefined,
+    message:
+      env.NODE_ENV === "development"
+        ? `Internal Server Error: ${error.message}`
+        : "Internal Server Error",
   });
 };

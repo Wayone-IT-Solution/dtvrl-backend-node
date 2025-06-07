@@ -1,9 +1,9 @@
-import LocationReviewService from "#services/locationReview";
+import LocationReviewLikeService from "#services/locationReviewLike";
 import BaseController from "#controllers/base";
 import { session } from "#middlewares/requestSession";
 
-class LocationReviewController extends BaseController {
-  static Service = LocationReviewService;
+class LocationReviewLikeController extends BaseController {
+  static Service = LocationReviewLikeService;
 
   static async create(req, res, next) {
     const userId = session.get("userId");
@@ -12,4 +12,4 @@ class LocationReviewController extends BaseController {
   }
 }
 
-export default LocationReviewController;
+export default LocationReviewLikeController;

@@ -5,6 +5,8 @@ import BaseController from "#controllers/base";
 import LocationReview from "#models/locationReview";
 import { sendResponse } from "#utils/response";
 import AppError from "#utils/appError";
+import { fn, col, literal } from "sequelize";
+import LocationReviewLike from "#models/locationReviewLike";
 
 class LocationController extends BaseController {
   static Service = LocationService;
@@ -13,24 +15,35 @@ class LocationController extends BaseController {
     const { lng, lat, name } = req.body;
 
     const customOptions = {
+      attributes: {
+        include: [
+          [fn("AVG", col("LocationReviews.rating")), "averageRating"],
+          [
+            fn(
+              "MAX",
+              literal(
+                `CASE WHEN "LocationReviews"."recommended" THEN 1 ELSE 0 END`,
+              ),
+            ),
+            "isRecommended",
+          ],
+        ],
+      },
       include: [
         {
           model: LocationReview,
-          include: [
-            {
-              model: User,
-              attributes: ["id", "name"],
-            },
-          ],
+          attributes: [], // don't include individual review rows
         },
       ],
+      group: ["Location.id"], // required to avoid grouping errors    };
     };
-
-    const options = this.Service.getOptions({ lat, lng }, customOptions);
+    const options = this.Service.getOptions(
+      { lat, lng, pagination: false },
+      customOptions,
+    );
 
     // Check if location already exists
     let data = await this.Service.get(null, { lat, lng }, options);
-    console.log(1, data);
 
     if (data.length > 1) {
       throw new AppError({
@@ -45,7 +58,6 @@ class LocationController extends BaseController {
       try {
         const created = await this.Service.create({ lat, lng, name });
         data = [created];
-        console.log(2, data);
       } catch (err) {
         if (err.name === "SequelizeUniqueConstraintError") {
           // In case of race condition, get the existing entry again
@@ -55,8 +67,6 @@ class LocationController extends BaseController {
         }
       }
     }
-
-    console.log(3, data);
 
     sendResponse(
       httpStatus.OK,
