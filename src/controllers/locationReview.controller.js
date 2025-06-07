@@ -43,7 +43,7 @@ class LocationReviewController extends BaseController {
           attributes: ["id", "name", "profile"],
         },
       ],
-      group: ["LocationReview.id"],
+      group: ["LocationReview.id", "User.id"],
     };
 
     const options = this.Service.getOptions(req.query, customOptions);
