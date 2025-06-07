@@ -21,26 +21,37 @@ class LocationReviewController extends BaseController {
     const { id } = req.params;
 
     const customOptions = {
+      subQuery: false,
       attributes: {
         include: [
-          [fn("COUNT", col("LocationReviewLikes.id")), "likeCount"],
-          [fn("COUNT", col("LocationReviewComments.id")), "commentCount"],
+          [
+            Sequelize.fn("COUNT", Sequelize.col("LocationReviewLikes.id")),
+            "likeCount",
+          ],
+          [
+            Sequelize.fn("COUNT", Sequelize.col("LocationReviewComments.id")),
+            "commentCount",
+          ],
         ],
       },
       include: [
         {
           model: LocationReviewLike,
-          attributes: [], // No need to return the full like rows
-          required: false, // LEFT JOIN
+          attributes: [],
+          required: false,
+          where: { deletedAt: null },
         },
         {
           model: LocationReviewComment,
-          attributes: [], // No need to return the full comment rows
-          required: false, // LEFT JOIN
+          attributes: [],
+          required: false,
+          where: { deletedAt: null },
         },
         {
           model: User,
           attributes: ["id", "name", "profile"],
+          required: false,
+          where: { deletedAt: null },
         },
       ],
       group: ["LocationReview.id", "User.id"],
