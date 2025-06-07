@@ -3,6 +3,7 @@ import BaseController from "#controllers/base";
 import { session } from "#middlewares/requestSession";
 import User from "#models/user";
 import { sendResponse } from "#utils/response";
+import httpStatus from "http-status";
 
 class LocationReviewController extends BaseController {
   static Service = LocationReviewService;
