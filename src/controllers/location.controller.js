@@ -18,12 +18,12 @@ class LocationController extends BaseController {
           [fn("AVG", col("LocationReviews.rating")), "averageRating"],
           [
             fn(
-              "MAX",
+              "COUNT",
               literal(
-                `CASE WHEN "LocationReviews"."recommended" THEN 1 ELSE 0 END`,
+                `CASE WHEN "LocationReviews"."recommended" THEN 1 ELSE NULL END`,
               ),
             ),
-            "isRecommended",
+            "recommendedCount",
           ],
         ],
       },
