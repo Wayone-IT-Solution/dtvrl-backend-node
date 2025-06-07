@@ -28,7 +28,7 @@ LocationReviewComment.initialize({
   },
 });
 
-LocationReview.hasMany(LocationReview, {
+LocationReview.hasMany(LocationReviewComment, {
   foreignKey: "locationReviewId",
 });
 
