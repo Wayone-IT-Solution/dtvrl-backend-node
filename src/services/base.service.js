@@ -126,9 +126,7 @@ class BaseService {
       ...remainingQueryParams, // Allow direct key filtering from remaining queryParams
     };
 
-    if (Object.keys(where).length > 0) {
-      options.where = where;
-    }
+    options.where = where;
 
     // 7. Merge with custom options (custom options override defaults)
     Object.assign(options, customOptions);
