@@ -12,8 +12,6 @@ export const globalErrorHandler = async (error, req, res, next) => {
   const transaction = await session.get("transaction");
   if (transaction) await transaction.rollback();
 
-  console.log(error);
-
   // Validation error
   if (error instanceof ValidationError) {
     const messages = error.errors
@@ -27,16 +25,33 @@ export const globalErrorHandler = async (error, req, res, next) => {
 
   // Foreign key error (e.g., referencing an ID that doesn't exist)
   if (error instanceof ForeignKeyConstraintError) {
-    const field = Array.isArray(error.fields)
-      ? error.fields[0]
-      : Object.keys(error.fields || {})[0] || "related ID";
-    return res.status(400).json({
-      status: false,
-      message: `The provided ${field} does not exist.`,
-    });
-  }
+    try {
+      const fields =
+        error.fields && typeof error.fields === "object" ? error.fields : {};
+      const field = Object.keys(fields)[0];
 
-  // Unique constraint error
+      if (!field) {
+        throw new Error("Foreign key field not found");
+      }
+
+      const value = fields[field];
+
+      // Extract model name (e.g., userId → User)
+      let entityName = field.endsWith("Id") ? field.slice(0, -2) : field;
+      entityName = entityName.charAt(0).toUpperCase() + entityName.slice(1);
+
+      return res.status(400).json({
+        status: false,
+        message: `${entityName} does not exist.`,
+      });
+    } catch (e) {
+      // Fallback in case of any unexpected shape
+      return res.status(400).json({
+        status: false,
+        message: "One of the related records does not exist.",
+      });
+    }
+  } // Unique constraint error
   if (error instanceof UniqueConstraintError) {
     const field = error.errors?.[0]?.path || "Field";
     return res.status(409).json({
