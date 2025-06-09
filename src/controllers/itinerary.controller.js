@@ -108,7 +108,7 @@ class ItineraryController extends BaseController {
   }
 
   static async shareWithAll(req, res, next) {
-    const { id } = req.params;
+    const { itineraryId: id } = req.body;
     const [itinerary] = await Promise.all([
       this.Service.getDocById(id, { raw: true }),
     ]);
