@@ -6,7 +6,7 @@ import LocationReviewComment from "#models/locationReviewComment";
 import LocationReviewLike from "#models/locationReviewLike";
 import { sendResponse } from "#utils/response";
 import httpStatus from "http-status";
-import { fn, col ,Sequelize} from "sequelize";
+import { fn, col, Sequelize } from "sequelize";
 
 class LocationReviewController extends BaseController {
   static Service = LocationReviewService;
