@@ -8,6 +8,14 @@ const router = express.Router();
 router.use(authentication);
 
 router
+  .route("/shared")
+  .get(
+    asyncHandler(
+      ItineraryController.getSharedItinerary.bind(ItineraryController),
+    ),
+  );
+
+router
   .route("/:id?")
   .get(asyncHandler(ItineraryController.get.bind(ItineraryController)))
   .post(asyncHandler(ItineraryController.create.bind(ItineraryController)))

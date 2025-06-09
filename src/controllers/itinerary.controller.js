@@ -5,6 +5,7 @@ import AppError from "#utils/appError";
 import ItineraryShareList from "#models/itineraryShareList";
 import { sendResponse } from "#utils/response";
 import httpStatus from "http-status";
+import { Op, Sequelize } from "sequelize";
 
 class ItineraryController extends BaseController {
   static Service = ItineraryService;
@@ -73,8 +74,39 @@ class ItineraryController extends BaseController {
     );
   }
 
+  static async getSharedItinerary(req, res, next) {
+    const userId = session.get("userId");
+
+    const customOptions = {
+      include: [
+        {
+          model: ItineraryShareList,
+          required: false,
+          where: { userId },
+        },
+      ],
+      where: {
+        deletedAt: null,
+        [Op.or]: [
+          { public: true },
+          {
+            id: {
+              [Op.in]: Sequelize.literal(
+                `(SELECT "itineraryId" FROM "ItineraryShareLists" WHERE "userId" = ${userId} AND "deletedAt" IS NULL)`,
+              ),
+            },
+          },
+        ],
+      },
+    };
+
+    const options = this.Service.getOptions({}, customOptions);
+    const data = await this.Service.get(null, req.query, options);
+    sendResponse(httpStatus.OK, res, data);
+  }
+
   static async shareWithAll(req, res, next) {
-    const { id } = req;
+    const { id } = req.params;
     const [itinerary] = await Promise.all([
       this.Service.getDocById(id, { raw: true }),
     ]);
