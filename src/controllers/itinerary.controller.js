@@ -133,7 +133,12 @@ class ItineraryController extends BaseController {
     newData.public = true;
 
     const newItinerary = await this.Service.create(newData);
-    return newItinerary;
+    sendResponse(
+      httpStatus.OK,
+      res,
+      newItinerary,
+      "Itinerary shared with all users",
+    );
   }
 }
 
