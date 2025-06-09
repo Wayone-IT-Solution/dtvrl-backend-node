@@ -5,24 +5,43 @@ import User from "#models/user";
 
 class ItineraryShareList extends BaseModel {}
 
-ItineraryShareList.initialize({
-  itineraryId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: Itinerary,
-      key: Itinerary.primaryKeyAttribute,
+ItineraryShareList.initialize(
+  {
+    itineraryId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: Itinerary,
+        key: Itinerary.primaryKeyAttribute,
+      },
+      unique: {
+        name: "user_itinerary_index",
+        msg: "You have already liked this review.",
+      },
+    },
+    userId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: User,
+        key: User.primaryKeyAttribute,
+      },
+      unique: {
+        name: "user_itinerary_index",
+        msg: "You have already liked this review.",
+      },
     },
   },
-  userId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: User,
-      key: User.primaryKeyAttribute,
-    },
+  {
+    indexes: [
+      {
+        fields: ["userId", "itineraryId"],
+        unique: true,
+        name: "user_itinerary_index",
+      },
+    ],
   },
-});
+);
 
 Itinerary.hasMany(ItineraryShareList, {
   foreignKey: "itineraryId",

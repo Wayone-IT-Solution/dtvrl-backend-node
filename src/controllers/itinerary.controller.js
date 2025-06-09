@@ -77,6 +77,8 @@ class ItineraryController extends BaseController {
   static async getSharedItinerary(req, res, next) {
     const userId = session.get("userId");
 
+    const { isPublic = true } = req.query;
+
     const customOptions = {
       include: [
         {
@@ -88,7 +90,7 @@ class ItineraryController extends BaseController {
       where: {
         deletedAt: null,
         [Op.or]: [
-          { public: true },
+          { public: isPublic },
           {
             id: {
               [Op.in]: Sequelize.literal(
