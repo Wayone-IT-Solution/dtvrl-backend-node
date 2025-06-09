@@ -16,6 +16,12 @@ router
   );
 
 router
+  .route("/share-all")
+  .post(
+    asyncHandler(ItineraryController.shareWithAll.bind(ItineraryController)),
+  );
+
+router
   .route("/:id?")
   .get(asyncHandler(ItineraryController.get.bind(ItineraryController)))
   .post(asyncHandler(ItineraryController.create.bind(ItineraryController)))
