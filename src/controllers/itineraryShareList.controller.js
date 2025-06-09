@@ -12,7 +12,7 @@ class ItineraryShareListController extends BaseController {
     const userId = session.get("userId");
 
     const { itineraryId } = req.body;
-    const itinerary = await ItineraryService.getDoc({ itineraryId });
+    const itinerary = await ItineraryService.getDoc({ id: itineraryId });
 
     if (itinerary.userId !== userId) {
       throw new AppError({
