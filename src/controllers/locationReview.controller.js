@@ -62,6 +62,16 @@ class LocationReviewController extends BaseController {
 
     sendResponse(httpStatus.OK, res, data);
   }
+
+  static async update(req, res, next) {
+    const userId = session.get("userId");
+    const { id } = req.params;
+    const doc = await this.Model.findDoc({ userId, id });
+
+    doc.updateFields(req.body);
+    await doc.save();
+    sendResponse(httpStatus.OK, res, doc);
+  }
 }
 
 export default LocationReviewController;

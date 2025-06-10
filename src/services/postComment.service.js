@@ -15,6 +15,11 @@ class PostCommentService extends BaseService {
     });
     return comment;
   }
+
+  static async deleteDoc(id) {
+    const doc = await this.Model.findDocById(id);
+    await doc.destroy({ force: true });
+  }
 }
 
 export default PostCommentService;
