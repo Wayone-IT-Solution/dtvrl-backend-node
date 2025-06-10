@@ -17,6 +17,7 @@ const env = cleanEnv(process.env, {
   AWS_BUCKET_NAME: str(),
   AWS_S3_ENDPOINT: str(),
   NODE_ENV: str({ default: "Development" }),
+  OLA_API_KEY: str(),
 });
 
 export default env;

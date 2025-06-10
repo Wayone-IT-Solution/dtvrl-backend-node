@@ -1,11 +1,14 @@
 import express from "express";
+import renderMap from "#configs/olaMap";
 import asyncHandler from "#utils/asyncHandler";
 import MemoryController from "#controllers/memory";
 import { authentication } from "#middlewares/authentication";
 
 const router = express.Router();
 
-router.use(authentication);
+// router.use(authentication);
+
+router.route("/map").get(asyncHandler(renderMap));
 
 router
   .route("/:id?")
