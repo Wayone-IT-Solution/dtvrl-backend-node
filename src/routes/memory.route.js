@@ -6,7 +6,7 @@ import { authentication } from "#middlewares/authentication";
 
 const router = express.Router();
 
-// router.use(authentication);
+router.use(authentication);
 
 router.route("/map").get(asyncHandler(renderMap));
 

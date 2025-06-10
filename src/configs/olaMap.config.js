@@ -1,4 +1,5 @@
 import env from "#configs/env";
+import { session } from "#middlewares/requestSession";
 
 // A URL for a custom map marker icon from the web.
 const CUSTOM_MARKER_IMAGE_URL =
@@ -15,6 +16,8 @@ const markersFromBackend = [
 
 export default async function renderMap(req, res) {
   const OLA_API_KEY = env.OLA_API_KEY;
+
+  const userId = session.get("userId");
 
   res.send(`
     <!DOCTYPE html>
@@ -97,7 +100,7 @@ export default async function renderMap(req, res) {
         // Wait for the map to finish loading its initial style
         map.on('load', () => {
           // Fetch markers from our own backend API endpoint
-          fetch("/api/memory")
+          fetch("/api/memory?userId=${userId}")
             .then(res => res.json())
             .then(markers => {
               console.log('Loaded markers from backend:', markers);
