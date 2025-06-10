@@ -2,6 +2,7 @@ import PostService from "#services/post";
 import BaseService from "#services/base";
 import PostComment from "#models/postComment";
 import NotificationService from "#services/notification";
+import { session } from "#middlewares/requestSession";
 
 class PostCommentService extends BaseService {
   static Model = PostComment;
@@ -10,7 +11,7 @@ class PostCommentService extends BaseService {
     const comment = await super.create(data);
     const post = await PostService.getDocById(data.postId);
     await NotificationService.create({
-      notification: `${session.user.name} just commented on your post`,
+      notification: `${session.payload.name} just commented on your post`,
       userId: post.userId,
     });
     return comment;
