@@ -5,6 +5,9 @@ import { sendResponse } from "#utils/response";
 import { session } from "#middlewares/requestSession";
 import UserService from "#services/user";
 import PostService from "#services/post";
+import PostLikeService from "#services/postLike";
+import PostCommentService from "#services/postComment";
+import { Sequelize } from "sequelize";
 
 class AdminController extends BaseController {
   static Service = AdminService;
@@ -29,8 +32,51 @@ class AdminController extends BaseController {
 
   static async getPosts(req, res, next) {
     const { id } = req.params;
-    const options = this.Service.getOptions(req.query, {});
+
+    const customOptions = {
+      include: [
+        {
+          model: PostLikeService.Model,
+          attributes: [],
+          duplicating: false,
+          required: false,
+        },
+        {
+          model: UserService.Model,
+          attributes: ["id", "name", "username", "profile", "email"],
+        },
+        {
+          model: PostCommentService.Model,
+          attributes: [],
+          duplicating: false,
+          required: false,
+        },
+      ],
+      attributes: [
+        "id",
+        "image",
+        "caption",
+        "createdAt",
+        [Sequelize.fn("COUNT", Sequelize.col("PostLikes.id")), "likeCount"],
+        [
+          Sequelize.fn("COUNT", Sequelize.col("PostComments.id")),
+          "commentCount",
+        ],
+      ],
+      group: [
+        "Post.id",
+        "User.id",
+        "Post.image",
+        "Post.caption",
+        "User.profile",
+        "User.username",
+        "Post.createdAt",
+      ],
+    };
+
+    const options = this.Service.getOptions(req.query, customOptions);
     const posts = await PostService.get(id, req.query, options);
+    sendResponse(httpStatus.OK, res, posts);
   }
 }
 
