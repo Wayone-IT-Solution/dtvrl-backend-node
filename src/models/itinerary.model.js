@@ -44,4 +44,8 @@ Itinerary.initialize({
   },
 });
 
+Itinerary.belongsTo(User, {
+  foreignKey: "userId",
+});
+
 export default Itinerary;
