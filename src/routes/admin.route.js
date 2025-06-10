@@ -16,6 +16,14 @@ router
   .get(asyncHandler(AdminController.getCurrentUser.bind(AdminController)));
 
 router
+  .route("/users/:id?")
+  .get(asyncHandler(AdminController.getUsers.bind(AdminController)));
+
+router
+  .route("/posts/:id?")
+  .get(asyncHandler(AdminController.getPosts.bind(AdminController)));
+
+router
   .route("/:id?")
   .get(asyncHandler(AdminController.get.bind(AdminController)))
   .post(asyncHandler(AdminController.create.bind(AdminController)))

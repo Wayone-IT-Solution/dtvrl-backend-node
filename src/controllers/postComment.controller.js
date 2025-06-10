@@ -3,6 +3,7 @@ import { session } from "#middlewares/requestSession";
 import { sendResponse } from "#utils/response";
 import PostCommentService from "#services/postComment";
 import httpStatus from "http-status";
+import User from "#models/user";
 
 class PostCommentController extends BaseController {
   static Service = PostCommentService;
