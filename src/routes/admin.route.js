@@ -24,6 +24,18 @@ router
   .get(asyncHandler(AdminController.getPosts.bind(AdminController)));
 
 router
+  .route("/buckets/:id?")
+  .get(asyncHandler(AdminController.getBuckets.bind(AdminController)));
+
+router
+  .route("/locations/:id?")
+  .get(asyncHandler(AdminController.getLocations.bind(AdminController)));
+
+router
+  .route("/itineraries/:id?")
+  .get(asyncHandler(AdminController.getItineraries.bind(AdminController)));
+
+router
   .route("/:id?")
   .get(asyncHandler(AdminController.get.bind(AdminController)))
   .post(asyncHandler(AdminController.create.bind(AdminController)))

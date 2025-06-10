@@ -8,6 +8,9 @@ import PostService from "#services/post";
 import PostLikeService from "#services/postLike";
 import PostCommentService from "#services/postComment";
 import { Sequelize } from "sequelize";
+import BucketService from "#services/bucket";
+import LocationService from "#services/location";
+import ItineraryService from "#services/itinerary";
 
 class AdminController extends BaseController {
   static Service = AdminService;
@@ -77,6 +80,51 @@ class AdminController extends BaseController {
     const options = this.Service.getOptions(req.query, customOptions);
     const posts = await PostService.get(id, req.query, options);
     sendResponse(httpStatus.OK, res, posts);
+  }
+
+  static async getItinerary(req, res, next) {}
+
+  static async getBuckets(req, res, next) {
+    const { id } = req.params;
+    const customOptions = {
+      include: [
+        {
+          model: UserService.Model,
+          attributes: ["id", "name", "profile"],
+        },
+      ],
+    };
+
+    const options = BucketService.getOptions(req.query, customOptions);
+    const data = await BucketService.get(id, req.query, options);
+    sendResponse(httpStatus.OK, res, data);
+  }
+
+  static async getLocations(req, res, next) {
+    const { id } = req.params;
+
+    const options = this.Service.getOptions(req.query, {});
+
+    const data = await LocationService.get(id, req.query, options);
+    sendResponse(httpStatus.OK, res, data);
+  }
+
+  static async getItineraries(req, res, next) {
+    const { id } = req.params;
+
+    const customOptions = {
+      include: [
+        {
+          model: UserService.Model,
+          attributes: ["id", "name", "profile"],
+        },
+      ],
+    };
+
+    const options = this.Service.getOptions(req.query, customOptions);
+
+    const data = await ItineraryService.get(id, req.query, options);
+    sendResponse(httpStatus.OK, res, data);
   }
 }
 

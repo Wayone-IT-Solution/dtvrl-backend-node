@@ -25,4 +25,8 @@ Bucket.initialize({
   },
 });
 
+Bucket.belongsTo(User, {
+  foreignKey: "userId",
+});
+
 export default Bucket;
