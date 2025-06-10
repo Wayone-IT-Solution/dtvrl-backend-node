@@ -9,11 +9,6 @@ class PostCommentService extends BaseService {
 
   static async create(data) {
     const comment = await super.create(data);
-    const post = await PostService.getDocById(data.postId);
-    await NotificationService.create({
-      notification: `${session.payload.name} just commented on your post`,
-      userId: post.userId,
-    });
     return comment;
   }
 
