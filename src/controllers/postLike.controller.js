@@ -1,5 +1,6 @@
 import BaseController from "#controllers/base";
 import PostLikeService from "#services/postLike";
+import { session } from "#middlewares/requestSession";
 
 class PostLikeController extends BaseController {
   static Service = PostLikeService;
