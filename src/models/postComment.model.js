@@ -32,4 +32,8 @@ Post.hasMany(PostComment, {
   foreignKey: "postId",
 });
 
+PostComment.belongsTo(User, {
+  foreignKey: "userId",
+});
+
 export default PostComment;

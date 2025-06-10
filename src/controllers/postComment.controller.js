@@ -27,7 +27,7 @@ class PostCommentController extends BaseController {
     const { id } = req.params;
 
     const options = this.Service.getOptions(req.query, customOptions);
-    const data = await this.Service(id, req.query, options);
+    const data = await this.Service.get(id, req.query, options);
     sendResponse(httpStatus.OK, res, data);
   }
 }
