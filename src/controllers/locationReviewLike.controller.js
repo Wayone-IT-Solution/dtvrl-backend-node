@@ -1,6 +1,7 @@
 import LocationReviewLikeService from "#services/locationReviewLike";
 import BaseController from "#controllers/base";
 import { session } from "#middlewares/requestSession";
+import { sendResponse } from "#utils/response";
 
 class LocationReviewLikeController extends BaseController {
   static Service = LocationReviewLikeService;
