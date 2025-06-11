@@ -45,6 +45,13 @@ class ItineraryController extends BaseController {
       ],
       attributes: [
         "id",
+        "title",
+        "amount",
+        "startDate",
+        "endDate",
+        "public",
+        "description",
+        "peopleCount",
         "createdAt",
         [
           Sequelize.fn("COUNT", Sequelize.col("ItineraryLikes.id")),
