@@ -1,6 +1,8 @@
 import cors from "cors";
 import multer from "multer";
 import morgan from "morgan";
+import path from "path";
+import { fileURLToPath } from "url";
 import express from "express";
 import router from "#routes/index";
 import logger from "#configs/logger";
@@ -16,7 +18,15 @@ const server = express();
 await sequelize.authenticate();
 // await sequelize.sync({ alter: true });
 
-// Request logging middleware
+// Resolve __dirname (since it's not available in ES modules)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Serve static files from the root-level public/ directory
+const publicPath = path.join(__dirname, "../..", "public");
+
+server.use(express.static(publicPath)); // Request logging middleware
+
 server.use(morgan(logger));
 server.use(cors());
 

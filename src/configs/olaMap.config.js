@@ -2,8 +2,7 @@ import env from "#configs/env";
 import { session } from "#middlewares/requestSession";
 
 // A URL for a custom map marker icon from the web.
-const CUSTOM_MARKER_IMAGE_URL =
-  "https://png.monster/wp-content/uploads/2022/09/png.monster-204.png";
+const CUSTOM_MARKER_IMAGE_URL = "/memory.png";
 
 // --- "BACKEND" DATA ---
 const markersFromBackend = [
