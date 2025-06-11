@@ -11,7 +11,20 @@ class PostCommentController extends BaseController {
   static async create(req, res, next) {
     const userId = session.get("userId");
     req.body.userId = userId;
-    return await super.create(req, res, next);
+    const postComment = await this.Service.create(req.body);
+    const updatedData = await this.Service.getDoc(
+      { id: postComment.id },
+      {
+        transaction: session.get("transaction"),
+        include: [
+          {
+            model: User,
+            attributes: ["id", "name", "profile", "username"],
+          },
+        ],
+      },
+    );
+    sendResponse(httpStatus.OK, res, updatedData);
   }
 
   static async get(req, res, next) {
