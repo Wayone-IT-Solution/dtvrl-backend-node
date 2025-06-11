@@ -1,17 +1,7 @@
 import env from "#configs/env";
 import { session } from "#middlewares/requestSession";
 
-// A URL for a custom map marker icon from the public folder
 const CUSTOM_MARKER_IMAGE_URL = "/memory.png";
-
-// --- "BACKEND" DATA (fallback, unused in this example) ---
-const markersFromBackend = [
-  { lat: 28.6139, lng: 77.209, name: "New Delhi" },
-  { lat: 19.076, lng: 72.8777, name: "Mumbai" },
-  { lat: 12.9716, lng: 77.5946, name: "Bengaluru" },
-  { lat: 22.5726, lng: 88.3639, name: "Kolkata" },
-  { lat: 17.385, lng: 78.4867, name: "Hyderabad" },
-];
 
 export default async function renderMap(req, res) {
   const OLA_API_KEY = env.OLA_API_KEY;
@@ -29,7 +19,6 @@ export default async function renderMap(req, res) {
           margin: 0;
           padding: 0;
           height: 100%;
-          font-family: sans-serif;
         }
 
         #map {
@@ -39,15 +28,13 @@ export default async function renderMap(req, res) {
 
         .custom-marker {
           background-image: url('${CUSTOM_MARKER_IMAGE_URL}');
-          background-size: contain;
+          background-size: cover;
           background-repeat: no-repeat;
           background-position: center;
           width: 40px;
           height: 40px;
           cursor: pointer;
-          border: none;
-          background-color: transparent;
-          box-shadow: none;
+          border-radius: 50%;
         }
 
         .maplibregl-popup-content {
@@ -67,7 +54,7 @@ export default async function renderMap(req, res) {
         const map = new maplibregl.Map({
           container: 'map',
           style: 'https://api.olamaps.io/tiles/vector/v1/styles/default-light-standard/style.json',
-          center: [78.9629, 20.5937], // Center of India
+          center: [78.9629, 20.5937],
           zoom: 4.5,
           transformRequest: (url, resourceType) => {
             url = url.replace("app.olamaps.io", "api.olamaps.io");
@@ -86,7 +73,10 @@ export default async function renderMap(req, res) {
           const popup = new maplibregl.Popup({ offset: 25 })
             .setText(markerData.name);
 
-          new maplibregl.Marker(el)
+          new maplibregl.Marker({
+            element: el,        // fully custom DOM element
+            anchor: "bottom"    // ensures icon sits on point
+          })
             .setLngLat([markerData.lng, markerData.lat])
             .setPopup(popup)
             .addTo(map);
@@ -96,21 +86,17 @@ export default async function renderMap(req, res) {
           fetch("/api/memory?userId=${userId}")
             .then(res => res.json())
             .then(markers => {
-              console.log('Loaded markers from backend:', markers);
               markers.forEach(marker => addCustomMarker(marker));
             })
-            .catch(error => {
-              console.error('Error fetching markers:', error);
-            });
+            .catch(err => console.error("Marker load error", err));
         });
 
         map.on("click", (e) => {
-          const newMarker = {
+          addCustomMarker({
             lng: e.lngLat.lng,
             lat: e.lngLat.lat,
             name: "New Marker"
-          };
-          addCustomMarker(newMarker);
+          });
         });
       </script>
     </body>
