@@ -1,10 +1,10 @@
 import env from "#configs/env";
 import { session } from "#middlewares/requestSession";
 
-// A URL for a custom map marker icon from the web.
+// Custom marker icon path
 const CUSTOM_MARKER_IMAGE_URL = "/memory.png";
 
-// --- "BACKEND" DATA ---
+// Backend markers
 const markersFromBackend = [
   { lat: 28.6139, lng: 77.209, name: "New Delhi" },
   { lat: 19.076, lng: 72.8777, name: "Mumbai" },
@@ -15,7 +15,6 @@ const markersFromBackend = [
 
 export default async function renderMap(req, res) {
   const OLA_API_KEY = env.OLA_API_KEY;
-
   const userId = session.get("userId");
 
   res.send(`
@@ -38,13 +37,13 @@ export default async function renderMap(req, res) {
         }
         .custom-marker {
           background-image: url('${CUSTOM_MARKER_IMAGE_URL}');
-          background-size: 100% 100%;
+          background-size: cover;
           background-repeat: no-repeat;
           background-position: center;
-          width: 64px;
-          height: 64px;
+          width: 96px;
+          height: 96px;
           cursor: pointer;
-          border-radius: 50%;
+          border-radius: 0; /* ensure square */
         }
         .maplibregl-popup-content {
           padding: 10px 15px;
