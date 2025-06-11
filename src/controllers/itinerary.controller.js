@@ -92,6 +92,47 @@ class ItineraryController extends BaseController {
             model: ItineraryShareList,
             attributes: ["id", "userId"],
           },
+          {
+            model: ItineraryLike,
+            attributes: [],
+            duplicating: false,
+            required: false,
+          },
+          {
+            model: User,
+            attributes: ["id", "name", "username", "profile", "email"],
+          },
+          {
+            model: ItineraryComment,
+            attributes: [],
+            duplicating: false,
+            required: false,
+          },
+        ],
+        attributes: [
+          "id",
+          "title",
+          "amount",
+          "startDate",
+          "endDate",
+          "public",
+          "description",
+          "peopleCount",
+          "createdAt",
+          [
+            Sequelize.fn("COUNT", Sequelize.col("ItineraryLikes.id")),
+            "likeCount",
+          ],
+          [
+            Sequelize.fn("COUNT", Sequelize.col("ItineraryComments.id")),
+            "commentCount",
+          ],
+        ],
+        group: [
+          "Itinerary.id",
+          "User.id",
+          "User.username",
+          "Itinerary.createdAt",
         ],
       },
     );
@@ -132,7 +173,7 @@ class ItineraryController extends BaseController {
     const userId = session.get("userId");
 
     const { isPublic = true } = req.query;
-
+    // NOTE: Add likecount and commentcount
     const customOptions = {
       include: [
         {
