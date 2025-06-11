@@ -36,6 +36,10 @@ router
   .get(asyncHandler(AdminController.getItineraries.bind(AdminController)));
 
 router
+  .route("/location-reviews/:id?")
+  .get(asyncHandler(AdminController.getLocationReviews.bind(AdminController)));
+
+router
   .route("/:id?")
   .get(asyncHandler(AdminController.get.bind(AdminController)))
   .post(asyncHandler(AdminController.create.bind(AdminController)))

@@ -11,6 +11,7 @@ import { Sequelize } from "sequelize";
 import BucketService from "#services/bucket";
 import LocationService from "#services/location";
 import ItineraryService from "#services/itinerary";
+import LocationReviewService from "#services/locationReview";
 
 class AdminController extends BaseController {
   static Service = AdminService;
@@ -124,6 +125,28 @@ class AdminController extends BaseController {
     const options = this.Service.getOptions(req.query, customOptions);
 
     const data = await ItineraryService.get(id, req.query, options);
+    sendResponse(httpStatus.OK, res, data);
+  }
+
+  static async getLocationReviews(req, res, next) {
+    const { id } = req.params;
+
+    const customOptions = {
+      include: [
+        {
+          model: UserService.Model,
+          attributes: ["id", "name", "profile"],
+        },
+        {
+          model: LocationService.Model,
+          attributes: ["id", "name"],
+        },
+      ],
+    };
+
+    const options = this.Service.getOptions(req.query, customOptions);
+
+    const data = await LocationReviewService.get(id, req.query, options);
     sendResponse(httpStatus.OK, res, data);
   }
 }

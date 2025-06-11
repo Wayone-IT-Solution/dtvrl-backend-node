@@ -64,4 +64,8 @@ LocationReview.belongsTo(User, {
   foreignKey: "userId",
 });
 
+LocationReview.belongsTo(Location, {
+  foreignKey: "locationId",
+});
+
 export default LocationReview;
