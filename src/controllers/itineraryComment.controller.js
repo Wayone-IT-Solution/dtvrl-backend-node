@@ -3,6 +3,7 @@ import BaseController from "#controllers/base";
 import { session } from "#middlewares/requestSession";
 import httpStatus from "http-status";
 import User from "#models/user";
+import { sendResponse } from "#utils/response";
 
 class ItineraryCommentController extends BaseController {
   static Service = ItineraryCommentService;
