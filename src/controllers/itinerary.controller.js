@@ -6,6 +6,9 @@ import ItineraryShareList from "#models/itineraryShareList";
 import { sendResponse } from "#utils/response";
 import httpStatus from "http-status";
 import { Op, Sequelize } from "sequelize";
+import ItineraryLike from "#models/itineraryLike";
+import ItineraryComment from "#models/itineraryComment";
+import User from "#models/user";
 
 class ItineraryController extends BaseController {
   static Service = ItineraryService;
@@ -18,8 +21,51 @@ class ItineraryController extends BaseController {
 
   static async get(req, res, next) {
     const userId = session.get("userId");
-    req.query.userId = userId;
-    return await super.get(req, res, next);
+    // req.query.userId = userId;
+
+    const customOptions = {
+      include: [
+        {
+          model: ItineraryLike,
+          attributes: [],
+          duplicating: false,
+          required: false,
+        },
+        {
+          model: User,
+          attributes: ["id", "name", "username", "profile", "email"],
+        },
+        {
+          model: ItineraryComment,
+          attributes: [],
+          duplicating: false,
+          required: false,
+        },
+      ],
+      attributes: [
+        "id",
+        "createdAt",
+        [
+          Sequelize.fn("COUNT", Sequelize.col("ItineraryLikes.id")),
+          "likeCount",
+        ],
+        [
+          Sequelize.fn("COUNT", Sequelize.col("ItineraryComments.id")),
+          "commentCount",
+        ],
+      ],
+      group: [
+        "Itinerary.id",
+        "User.id",
+        "User.username",
+        "Itinerary.createdAt",
+      ],
+    };
+
+    const options = this.Service.getOptions(req.query, customOptions);
+    const data = await this.Service.get(null, req.query, options);
+
+    sendResponse(httpStatus.OK, res, data, "Itineraries fetched successfully");
   }
 
   static async update(req, res, next) {
