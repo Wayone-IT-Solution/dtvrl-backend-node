@@ -21,7 +21,8 @@ class ItineraryController extends BaseController {
 
   static async get(req, res, next) {
     const userId = session.get("userId");
-    // req.query.userId = userId;
+    const { id } = req.params;
+    req.query.userId = userId;
 
     const customOptions = {
       include: [
@@ -63,7 +64,7 @@ class ItineraryController extends BaseController {
     };
 
     const options = this.Service.getOptions(req.query, customOptions);
-    const data = await this.Service.get(null, req.query, options);
+    const data = await this.Service.get(id, req.query, options);
 
     sendResponse(httpStatus.OK, res, data, "Itineraries fetched successfully");
   }
