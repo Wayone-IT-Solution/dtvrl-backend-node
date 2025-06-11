@@ -1,5 +1,7 @@
 import ItineraryCommentService from "#services/itineraryComment";
 import BaseController from "#controllers/base";
+import { session } from "#middlewares/requestSession";
+import httpStatus from "http-status";
 
 class ItineraryCommentController extends BaseController {
   static Service = ItineraryCommentService;
