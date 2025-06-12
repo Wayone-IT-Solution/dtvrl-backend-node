@@ -7,7 +7,7 @@ class Image extends BaseModel {}
 Image.initialize({
   name: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,
     file: true,
   },
   memoryId: {
