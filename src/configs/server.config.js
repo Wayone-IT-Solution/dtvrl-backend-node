@@ -18,7 +18,6 @@ const server = express();
 await sequelize.authenticate();
 // await sequelize.sync({ alter: true });
 
-// Resolve __dirname (since it's not available in ES modules)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 

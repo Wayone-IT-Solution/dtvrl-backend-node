@@ -12,7 +12,6 @@ class MemoryController extends BaseController {
   }
 
   static async get(req, res, next) {
-    req.query.userId = session.get("userId");
     return await super.get(req, res, next);
   }
 }

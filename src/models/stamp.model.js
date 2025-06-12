@@ -22,6 +22,11 @@ Stamp.initialize({
       key: User.primaryKeyAttribute,
     },
   },
+  image: {
+    type: DataTypes.TEXT,
+    allowNull: false,
+    file: true,
+  },
 });
 
 export default Stamp;
