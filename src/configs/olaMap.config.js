@@ -104,6 +104,7 @@ export default async function renderMap(req, res) {
             lat: e.lngLat.lat,
             name: "New Marker"
           };
+		  window.flutter_inappwebview.callHandler('logHandler', newMarker);
           addCustomMarker(newMarker);
         });
       </script>
