@@ -23,7 +23,7 @@ class ImageController extends BaseController {
     for (const image of req.files) {
       image.fieldname = "name";
       session.set("files", [image]);
-      const images = await super.create({ memoryId });
+      const images = await this.Service.create({ memoryId });
     }
 
     sendResponse(httpStatus.OK, res, null, "Images uploaded successfully");
