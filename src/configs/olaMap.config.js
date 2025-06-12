@@ -1,4 +1,5 @@
 import env from "#configs/env";
+import MemoryService from "#services/memory";
 import { session } from "#middlewares/requestSession";
 
 // Custom marker icon path
@@ -16,6 +17,14 @@ const markersFromBackend = [
 export default async function renderMap(req, res) {
   const OLA_API_KEY = env.OLA_API_KEY;
   const userId = session.get("userId");
+
+  const options = MemoryService.getOptions(
+    { pagination: false, userId },
+    { raw: true },
+  );
+  const memories = await MemoryService.get(null, { userId }, options);
+
+  console.log(memories);
 
   res.send(`
     <!DOCTYPE html>
@@ -86,17 +95,11 @@ export default async function renderMap(req, res) {
             .addTo(map);
         }
 
-        map.on('load', () => {
-          fetch("/api/memory?userId=${userId}")
-            .then(res => res.json())
-            .then(markers => {
-              console.log('Loaded markers from backend:', markers);
-              markers.forEach(marker => addCustomMarker(marker));
-            })
-            .catch(error => {
-              console.error('Error fetching markers:', error);
-            });
-        });
+
+		map.on('load', () => {
+			const markers = ${JSON.stringify(memories)};
+			markers.forEach(marker => addCustomMarker({name:marker.name,lng:marker.longitude,lat:marker.latitude}));
+		});
 
         map.on("click", (e) => {
           const newMarker = {
@@ -104,8 +107,8 @@ export default async function renderMap(req, res) {
             lat: e.lngLat.lat,
             name: "New Marker"
           };
+			addCustomMarker(newMarker);
 		  window.flutter_inappwebview.callHandler('logHandler', newMarker);
-          addCustomMarker(newMarker);
         });
       </script>
     </body>
