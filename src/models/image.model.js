@@ -8,7 +8,7 @@ Image.initialize({
   name: {
     type: DataTypes.STRING,
     allowNull: false,
-    //WARN: Unique constraint missing
+    file: true,
   },
   memoryId: {
     type: DataTypes.INTEGER,
