@@ -13,6 +13,7 @@ Stamp.initialize({
       model: Memory,
       key: Memory.primaryKeyAttribute,
     },
+    unqiue: true,
   },
   userId: {
     type: DataTypes.INTEGER,
@@ -24,7 +25,7 @@ Stamp.initialize({
   },
   image: {
     type: DataTypes.TEXT,
-    allowNull: false,
+    allowNull: true,
     file: true,
   },
 });
