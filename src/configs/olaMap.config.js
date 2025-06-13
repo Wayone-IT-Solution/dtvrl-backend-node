@@ -77,9 +77,20 @@ export default async function renderMap(req, res) {
 
         map.addControl(new maplibregl.NavigationControl());
 
+        function onMarkerClick(marker) {
+          console.log("Marker clicked:", marker);
+          window.flutter_inappwebview?.callHandler?.('selectHandler', marker);
+          // You can replace above with alert(marker.name) or open modal
+        }
+
         function addCustomMarker(markerData) {
           const el = document.createElement("div");
           el.className = "custom-marker";
+
+          // Attach custom click handler
+          el.addEventListener("click", () => {
+            onMarkerClick(markerData);
+          });
 
           const popup = new maplibregl.Popup({ offset: 25 }).setText(markerData.name);
 
@@ -94,7 +105,8 @@ export default async function renderMap(req, res) {
           markers.forEach(marker => addCustomMarker({
             name: marker.name,
             lng: marker.longitude,
-            lat: marker.latitude
+            lat: marker.latitude,
+			id:marker.id
           }));
         });
 
@@ -102,7 +114,8 @@ export default async function renderMap(req, res) {
           const newMarker = {
             lng: e.lngLat.lng,
             lat: e.lngLat.lat,
-            name: "New Marker"
+            name: "New Marker",
+			id:1
           };
           window.flutter_inappwebview?.callHandler?.('logHandler', newMarker);
         });
