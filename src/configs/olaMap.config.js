@@ -5,15 +5,6 @@ import { session } from "#middlewares/requestSession";
 // Custom marker icon path
 const CUSTOM_MARKER_IMAGE_URL = "/memory.png";
 
-// Backend markers
-const markersFromBackend = [
-  { lat: 28.6139, lng: 77.209, name: "New Delhi" },
-  { lat: 19.076, lng: 72.8777, name: "Mumbai" },
-  { lat: 12.9716, lng: 77.5946, name: "Bengaluru" },
-  { lat: 22.5726, lng: 88.3639, name: "Kolkata" },
-  { lat: 17.385, lng: 78.4867, name: "Hyderabad" },
-];
-
 export default async function renderMap(req, res) {
   const OLA_API_KEY = env.OLA_API_KEY;
   const userId = session.get("userId");
@@ -24,7 +15,10 @@ export default async function renderMap(req, res) {
   );
   const memories = await MemoryService.get(null, { userId }, options);
 
-  console.log(memories);
+  // Use India Gate as default if lat/lng not provided
+  const defaultLat = req.query.lat ? parseFloat(req.query.lat) : 28.6129;
+  const defaultLng = req.query.lng ? parseFloat(req.query.lng) : 77.2295;
+  const defaultZoom = 15;
 
   res.send(`
     <!DOCTYPE html>
@@ -52,7 +46,7 @@ export default async function renderMap(req, res) {
           width: 96px;
           height: 96px;
           cursor: pointer;
-          border-radius: 0; /* ensure square */
+          border-radius: 0;
         }
         .maplibregl-popup-content {
           padding: 10px 15px;
@@ -71,8 +65,8 @@ export default async function renderMap(req, res) {
         const map = new maplibregl.Map({
           container: 'map',
           style: 'https://api.olamaps.io/tiles/vector/v1/styles/default-light-standard/style.json',
-          center: [78.9629, 20.5937],
-          zoom: 4.5,
+          center: [${defaultLng}, ${defaultLat}],
+          zoom: ${defaultZoom},
           transformRequest: (url, resourceType) => {
             url = url.replace("app.olamaps.io", "api.olamaps.io");
             return {
@@ -95,11 +89,14 @@ export default async function renderMap(req, res) {
             .addTo(map);
         }
 
-
-		map.on('load', () => {
-			const markers = ${JSON.stringify(memories)};
-			markers.forEach(marker => addCustomMarker({name:marker.name,lng:marker.longitude,lat:marker.latitude}));
-		});
+        map.on('load', () => {
+          const markers = ${JSON.stringify(memories)};
+          markers.forEach(marker => addCustomMarker({
+            name: marker.name,
+            lng: marker.longitude,
+            lat: marker.latitude
+          }));
+        });
 
         map.on("click", (e) => {
           const newMarker = {
@@ -107,7 +104,7 @@ export default async function renderMap(req, res) {
             lat: e.lngLat.lat,
             name: "New Marker"
           };
-		  window.flutter_inappwebview.callHandler('logHandler', newMarker);
+          window.flutter_inappwebview?.callHandler?.('logHandler', newMarker);
         });
       </script>
     </body>
