@@ -3,6 +3,12 @@ import BaseController from "#controllers/base";
 
 class StampController extends BaseController {
   static Service = StampService;
+
+  static async create(req, res, next) {
+    const userId = session.get("userId");
+    req.body.userId = userId;
+    return await super.create(req, res, next);
+  }
 }
 
 export default StampController;
