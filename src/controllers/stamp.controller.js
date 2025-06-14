@@ -1,5 +1,6 @@
 import StampService from "#services/stamp";
 import BaseController from "#controllers/base";
+import { session } from "#middlewares/requestSession";
 
 class StampController extends BaseController {
   static Service = StampService;
