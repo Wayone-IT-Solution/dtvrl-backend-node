@@ -13,7 +13,7 @@ Stamp.initialize({
       model: Memory,
       key: Memory.primaryKeyAttribute,
     },
-    unqiue: true,
+    unqiue: false,
   },
   userId: {
     type: DataTypes.INTEGER,

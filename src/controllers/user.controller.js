@@ -56,6 +56,14 @@ class UserController extends BaseController {
           )`),
             "memoryCount",
           ],
+          [
+            literal(`(
+    		SELECT COALESCE(SUM(DATE_PART('day', "endDate" - "startDate") + 1), 0)
+    		FROM "${Memory.tableName}" AS "memories"
+    		WHERE "memories"."userId" = "User"."id"
+  			)`),
+            "totalTravelDays",
+          ],
         ],
       },
     });
