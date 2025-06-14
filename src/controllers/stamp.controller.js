@@ -14,7 +14,7 @@ class StampController extends BaseController {
   static async get(req, res, next) {
     const userId = session.get("userId");
     req.body.userId = userId;
-    return await super.create(req, res, next);
+    return await super.get(req, res, next);
   }
 }
 
