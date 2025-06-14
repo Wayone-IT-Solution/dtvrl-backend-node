@@ -6,6 +6,7 @@ import { sendResponse } from "#utils/response";
 import { session } from "#middlewares/requestSession";
 import AppError from "#utils/appError";
 import { literal } from "sequelize";
+import Memory from "#models/memory";
 
 class UserController extends BaseController {
   static Service = UserService;
@@ -46,6 +47,14 @@ class UserController extends BaseController {
             WHERE "followings"."userId" = "User"."id"
           )`),
             "followingCount",
+          ],
+          [
+            literal(`(
+            SELECT COUNT(*)
+            FROM "${Memory.tableName}" AS "memories"
+            WHERE "memories"."userId" = "User"."id"
+          )`),
+            "memoryCount",
           ],
         ],
       },
