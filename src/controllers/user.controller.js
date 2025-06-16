@@ -19,6 +19,8 @@ class UserController extends BaseController {
     if (!id) {
       return await super.get(req, res, next);
     }
+
+    return this.getCurrentUser(req, res, next);
   }
 
   static async login(req, res, next) {
@@ -27,7 +29,7 @@ class UserController extends BaseController {
   }
 
   static async getCurrentUser(req, res, next) {
-    const userId = session.get("userId");
+    const userId = req.params.id ?? session.get("userId");
     const user = await this.Service.Model.findOne({
       where: { id: userId },
       attributes: {
