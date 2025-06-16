@@ -77,19 +77,17 @@ export default async function renderMap(req, res) {
 
         map.addControl(new maplibregl.NavigationControl());
 
-        function onMarkerClick(marker) {
-          console.log("Marker clicked:", marker);
+        function onMarkerClick(marker, event) {
+          event.stopPropagation(); // Prevent map click event from firing
           window.flutter_inappwebview?.callHandler?.('selectHandler', marker);
-          // You can replace above with alert(marker.name) or open modal
         }
 
         function addCustomMarker(markerData) {
           const el = document.createElement("div");
           el.className = "custom-marker";
 
-          // Attach custom click handler
-          el.addEventListener("click", () => {
-            onMarkerClick(markerData);
+          el.addEventListener("click", (e) => {
+            onMarkerClick(markerData, e);
           });
 
           const popup = new maplibregl.Popup({ offset: 25 }).setText(markerData.name);
@@ -103,19 +101,19 @@ export default async function renderMap(req, res) {
         map.on('load', () => {
           const markers = ${JSON.stringify(memories)};
           markers.forEach(marker => addCustomMarker({
+            id: marker.id,
             name: marker.name,
             lng: marker.longitude,
             lat: marker.latitude,
-			id:marker.id
           }));
         });
 
         map.on("click", (e) => {
           const newMarker = {
+            id: 1,
             lng: e.lngLat.lng,
             lat: e.lngLat.lat,
-            name: "New Marker",
-			id:1
+            name: "New Marker"
           };
           window.flutter_inappwebview?.callHandler?.('logHandler', newMarker);
         });
