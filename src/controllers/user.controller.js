@@ -7,6 +7,8 @@ import { session } from "#middlewares/requestSession";
 import AppError from "#utils/appError";
 import { literal } from "sequelize";
 import Memory from "#models/memory";
+import LocationReview from "#models/locationReview";
+import Itinerary from "#models/itinerary";
 
 class UserController extends BaseController {
   static Service = UserService;
@@ -63,6 +65,22 @@ class UserController extends BaseController {
     		WHERE "memories"."userId" = "User"."id"
   			)`),
             "totalTravelDays",
+          ],
+          [
+            literal(`(
+    		SELECT COALESCE(SUM(DATE_PART('day', "endDate" - "startDate") + 1), 0)
+    		FROM "${LocationReview.tableName}" AS "locationReviews"
+    		WHERE "locationReviews"."userId" = "User"."id"
+  			)`),
+            "totalReviewCount",
+          ],
+          [
+            literal(`(
+    		SELECT COALESCE(SUM(DATE_PART('day', "endDate" - "startDate") + 1), 0)
+    		FROM "${Itinerary.tableName}" AS "itineraries"
+    		WHERE "itineraries"."userId" = "User"."id" AND "itineraries"."public" = true
+  			)`),
+            "totalItineraries",
           ],
         ],
       },
