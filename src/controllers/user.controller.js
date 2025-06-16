@@ -68,7 +68,7 @@ class UserController extends BaseController {
           ],
           [
             literal(`(
-    		SELECT COALESCE(SUM(DATE_PART('day', "endDate" - "startDate") + 1), 0)
+    		SELECT COUNT(*)
     		FROM "${LocationReview.tableName}" AS "locationReviews"
     		WHERE "locationReviews"."userId" = "User"."id"
   			)`),
@@ -76,7 +76,7 @@ class UserController extends BaseController {
           ],
           [
             literal(`(
-    		SELECT COALESCE(SUM(DATE_PART('day', "endDate" - "startDate") + 1), 0)
+    		SELECT COUNT(*)
     		FROM "${Itinerary.tableName}" AS "itineraries"
     		WHERE "itineraries"."userId" = "User"."id" AND "itineraries"."public" = true
   			)`),
