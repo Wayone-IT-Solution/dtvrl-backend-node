@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "generate": "node src/scripts/generateModule.js",
-    "start": "node src/index"
+    "start": "node src/index",
+    "dev": "nodemon"
   },
   "imports": {
     "#root/*": "./*.js",
@@ -36,7 +37,8 @@
     "node-cron": "^3.0.3",
     "pg": "^8.15.6",
     "sequelize": "^6.37.7",
-    "sharp": "^0.34.2"
+    "sharp": "^0.34.2",
+    "socket.io": "^4.8.1"
   },
   "repository": {
     "type": "git",

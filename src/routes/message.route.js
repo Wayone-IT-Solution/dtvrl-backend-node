@@ -6,6 +6,15 @@ import { authentication } from "#middlewares/authentication";
 const router = express.Router();
 
 // router.use(authentication);
+router
+  .route("/get-messages")
+  .get(
+    asyncHandler(MessageController.getMessagesBetweenUsers.bind(MessageController))
+  );
+
+router
+  .route("/chat-list/:id")
+  .get(asyncHandler(MessageController.getChatList.bind(MessageController)));
 
 router
   .route("/:id?")
