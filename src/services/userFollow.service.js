@@ -5,7 +5,6 @@ class UserFollowService extends BaseService {
   static Model = UserFollow;
 
   static async create(data) {
-    console.log(data);
     const existing = await this.getDoc(data, { allowNull: true });
     if (existing) {
       await existing.destroy({ force: true });

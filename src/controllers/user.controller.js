@@ -41,7 +41,7 @@ class UserController extends BaseController {
             FROM "${UserFollow.tableName}" AS "followers"
             WHERE "followers"."otherId" = "User"."id"
           )`),
-            "followerCount",
+            "followersCount",
           ],
           // Following count (this user follows other users)
           [
