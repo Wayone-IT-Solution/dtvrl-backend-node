@@ -1,6 +1,8 @@
 import User from "#models/user";
 import BaseModel from "#models/base";
 import { DataTypes } from "sequelize";
+import httpStatus from "http-status";
+import AppError from "#utils/appError";
 
 class UserFollow extends BaseModel {}
 
@@ -27,7 +29,11 @@ UserFollow.initialize(
     validate: {
       notSelfFollow() {
         if (this.userId === this.otherId) {
-          throw new Error("User cannot follow themselves.");
+          throw new AppError({
+            status: false,
+            message: "User cannot follow themselves",
+            httpStatus: httpStatus.CONFLICT,
+          });
         }
       },
     },
