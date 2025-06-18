@@ -24,6 +24,13 @@ UserFollow.initialize(
     },
   },
   {
+    validate: {
+      notSelfFollow() {
+        if (this.userId === this.otherId) {
+          throw new Error("User cannot follow themselves.");
+        }
+      },
+    },
     indexes: [
       {
         unique: true,
