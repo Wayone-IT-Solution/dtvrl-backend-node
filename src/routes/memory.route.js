@@ -11,6 +11,10 @@ router.use(authentication);
 router.route("/map").get(asyncHandler(renderMap));
 
 router
+  .route("/all/:id?")
+  .get(asyncHandler(MemoryController.getMemories.bind(MemoryController)));
+
+router
   .route("/:id?")
   .get(asyncHandler(MemoryController.get.bind(MemoryController)))
   .post(asyncHandler(MemoryController.create.bind(MemoryController)))
