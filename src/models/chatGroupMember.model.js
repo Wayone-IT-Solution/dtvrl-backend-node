@@ -1,6 +1,6 @@
 import User from "#models/user";
-import ChatGroup from "#models/chatGroup";
 import BaseModel from "#models/base";
+import ChatGroup from "#models/chatGroup";
 import { DataTypes } from "sequelize";
 
 class ChatGroupMember extends BaseModel {}

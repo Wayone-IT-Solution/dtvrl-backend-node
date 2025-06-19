@@ -18,6 +18,10 @@ ChatGroup.initialize({
       key: User.primaryKeyAttribute,
     },
   },
+  photo: {
+    type: DataTypes.TEXT,
+    file: true,
+  },
 });
 
 export default ChatGroup;
