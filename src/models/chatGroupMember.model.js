@@ -12,7 +12,7 @@ ChatGroupMember.initialize(
       allowNull: false,
       references: {
         model: User,
-        key: "id",
+        key: User.primaryKeyAttribute,
       },
     },
     groupId: {
@@ -20,7 +20,7 @@ ChatGroupMember.initialize(
       allowNull: false,
       references: {
         model: ChatGroup,
-        key: "id",
+        key: ChatGroup.primaryKeyAttribute,
       },
     },
   },
@@ -33,5 +33,10 @@ ChatGroupMember.initialize(
     ],
   },
 );
+
+ChatGroupMember.belongsTo(
+  User,
+  {foreignKey:"userId"}
+)
 
 export default ChatGroupMember;
