@@ -11,6 +11,7 @@ import { session } from "#middlewares/requestSession";
 export const globalErrorHandler = async (error, req, res, next) => {
   const transaction = await session.get("transaction");
   if (transaction) await transaction.rollback();
+  console.log(error)
 
   // Validation error
   if (error instanceof ValidationError) {

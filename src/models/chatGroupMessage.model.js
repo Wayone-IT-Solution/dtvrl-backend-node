@@ -29,4 +29,12 @@ ChatGroupMessage.initialize({
   },
 });
 
+ChatGroupMessage.belongsTo(User,{
+  foreignKey:"senderId"
+})
+
+ChatGroup.hasMany(ChatGroupMessage,{
+  foreignKey:"groupId"
+})
+
 export default ChatGroupMessage;

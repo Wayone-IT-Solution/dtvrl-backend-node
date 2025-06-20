@@ -104,28 +104,43 @@ io.on("connection", (socket) => {
           filePath = filePath.replace("src/", "/");
         }
         const user = await User.findDocById(senderId);
+        const safeUser = {
+          id: user.id,
+          name: user.name,
+          username: user.username,
+          email: user.email,
+          phoneCountryCode: user.phoneCountryCode,
+          phone: user.phone,
+          gender: user.gender,
+          dob: user.dob,
+          bio: user.bio,
+          profile: user.profile,
+          isPrivate: user.isPrivate,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        };
         const message = await Message.create({
           senderId,
           receiverId,
           message: text || null,
           file: filePath,
         });
-
+        console.log(message)
         const receiverSockets = userList[receiverId];
         const senderSockets = userList[senderId];
-
+        console.log(receiverSockets,senderSockets)
         receiverSockets?.forEach((id) =>
           socket.to(id).emit("message", {
             uniqueId,
             message,
-            user
+            user: safeUser
           })
         );
         senderSockets?.forEach((id) =>
           io.to(id).emit("message-sent", {
             uniqueId,
             message,
-            user
+            user: safeUser
           })
         );
 
@@ -191,11 +206,26 @@ io.on("connection", (socket) => {
         });
 
         const user = await User.findDocById(senderId);
+        const safeUser = {
+          id: user.id,
+          name: user.name,
+          username: user.username,
+          email: user.email,
+          phoneCountryCode: user.phoneCountryCode,
+          phone: user.phone,
+          gender: user.gender,
+          dob: user.dob,
+          bio: user.bio,
+          profile: user.profile,
+          isPrivate: user.isPrivate,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        };
         // Emit to everyone in the room
         io.to(groupId?.toString()).emit("groupMessage", {
           uniqueId,
           message,
-          user,
+          user: safeUser,
         });
 
         // Optionally emit to sender for confirmation
@@ -206,7 +236,7 @@ io.on("connection", (socket) => {
             io.to(id).emit("groupMessage-sent", {
               uniqueId,
               message,
-              user
+              user: safeUser
             });
             console.log(id);
           }

@@ -39,4 +39,9 @@ ChatGroupMember.belongsTo(
   {foreignKey:"userId"}
 )
 
+ChatGroupMember.belongsTo(
+  ChatGroup,
+  {foreignKey:"groupId"}
+)
+
 export default ChatGroupMember;
