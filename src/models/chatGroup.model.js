@@ -1,6 +1,8 @@
 import User from "#models/user";
 import BaseModel from "#models/base";
-import { DataTypes } from "sequelize";
+import {
+  DataTypes
+} from "sequelize";
 
 class ChatGroup extends BaseModel {}
 
@@ -10,6 +12,10 @@ ChatGroup.initialize({
     allowNull: false,
     //WARN: Unique constraint missing
   },
+  bio: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
   adminId: {
     type: DataTypes.INTEGER,
     allowNull: false,
@@ -18,7 +24,7 @@ ChatGroup.initialize({
       key: User.primaryKeyAttribute,
     },
   },
-  photo: {
+  profile: {
     type: DataTypes.TEXT,
     file: true,
   },
