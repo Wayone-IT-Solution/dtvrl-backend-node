@@ -1,7 +1,7 @@
+import User from "#models/user";
 import BaseModel from "#models/base";
 import { DataTypes } from "sequelize";
 import ChatGroup from "#models/chatGroup";
-import User from "#models/user";
 
 class ChatGroupMessage extends BaseModel {}
 
@@ -18,6 +18,7 @@ ChatGroupMessage.initialize({
       model: ChatGroup,
       key: ChatGroup.primaryKeyAttribute,
     },
+    onDelete: "CASCADE",
   },
   senderId: {
     type: DataTypes.INTEGER,
@@ -26,15 +27,16 @@ ChatGroupMessage.initialize({
       model: User,
       key: User.primaryKeyAttribute,
     },
+    onDelete: "CASCADE",
   },
 });
 
-ChatGroupMessage.belongsTo(User,{
-  foreignKey:"senderId"
-})
+ChatGroupMessage.belongsTo(User, {
+  foreignKey: "senderId",
+});
 
-ChatGroup.hasMany(ChatGroupMessage,{
-  foreignKey:"groupId"
-})
+ChatGroup.hasMany(ChatGroupMessage, {
+  foreignKey: "groupId",
+});
 
 export default ChatGroupMessage;

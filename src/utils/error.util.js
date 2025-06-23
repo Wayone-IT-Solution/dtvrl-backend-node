@@ -11,9 +11,10 @@ import { session } from "#middlewares/requestSession";
 export const globalErrorHandler = async (error, req, res, next) => {
   const transaction = await session.get("transaction");
   if (transaction) await transaction.rollback();
-  console.log(error)
 
-  // Validation error
+  console.error(error); // Always log the full error for internal diagnostics
+
+  // Sequelize Validation Error
   if (error instanceof ValidationError) {
     const messages = error.errors
       .map((e) => `${e.path}: ${e.message}`)
@@ -24,44 +25,59 @@ export const globalErrorHandler = async (error, req, res, next) => {
     });
   }
 
-  // Foreign key error (e.g., referencing an ID that doesn't exist)
+  // Sequelize Foreign Key Constraint Error
   if (error instanceof ForeignKeyConstraintError) {
     try {
-      const fields =
-        error.fields && typeof error.fields === "object" ? error.fields : {};
-      const field = Object.keys(fields)[0];
+      let field = null;
+      let value = null;
 
-      if (!field) {
-        throw new Error("Foreign key field not found");
+      // Extract field and value from `error.fields`
+      if (error.fields && typeof error.fields === "object") {
+        field = Object.keys(error.fields)[0];
+        value = error.fields[field];
       }
 
-      const value = fields[field];
+      // Fallback: Try to extract field from error.index or error.constraint
+      if (!field && typeof error.index === "string") {
+        const match = error.index.match(/_(\w+)_fkey/);
+        if (match) field = match[1];
+      }
 
-      // Extract model name (e.g., userId → User)
+      if (!field && typeof error.constraint === "string") {
+        const match = error.constraint.match(/(\w+)_fkey/);
+        if (match) field = match[1];
+      }
+
+      if (!field) throw new Error("Could not determine foreign key field.");
+
+      // Convert field name (e.g., userId → User)
       let entityName = field.endsWith("Id") ? field.slice(0, -2) : field;
       entityName = entityName.charAt(0).toUpperCase() + entityName.slice(1);
 
       return res.status(400).json({
         status: false,
-        message: `${entityName} does not exist.`,
+        message: `${entityName} not found${value ? ` (ID: ${value})` : ""}.`,
+        field,
       });
     } catch (e) {
-      // Fallback in case of any unexpected shape
       return res.status(400).json({
         status: false,
-        message: "One of the related records does not exist.",
+        message: "Referenced entity does not exist.",
       });
     }
-  } // Unique constraint error
+  }
+
+  // Sequelize Unique Constraint Error
   if (error instanceof UniqueConstraintError) {
     const field = error.errors?.[0]?.path || "Field";
     return res.status(409).json({
       status: false,
       message: `${field} already exists.`,
+      field,
     });
   }
 
-  // Database error
+  // Sequelize General Database Error
   if (error instanceof DatabaseError) {
     return res.status(500).json({
       status: false,
@@ -69,7 +85,7 @@ export const globalErrorHandler = async (error, req, res, next) => {
     });
   }
 
-  // Connection error
+  // Sequelize Connection Error
   if (error instanceof ConnectionError) {
     return res.status(503).json({
       status: false,
@@ -77,7 +93,7 @@ export const globalErrorHandler = async (error, req, res, next) => {
     });
   }
 
-  // Custom HTTP error
+  // Custom HTTP error with status
   if (error.httpStatus && error.message) {
     return res.status(error.httpStatus).json({
       status: false,
@@ -93,7 +109,7 @@ export const globalErrorHandler = async (error, req, res, next) => {
     });
   }
 
-  // Unknown fallback error
+  // Fallback unknown error
   return res.status(500).json({
     status: false,
     message:

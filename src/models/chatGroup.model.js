@@ -1,8 +1,6 @@
 import User from "#models/user";
 import BaseModel from "#models/base";
-import {
-  DataTypes
-} from "sequelize";
+import { DataTypes } from "sequelize";
 
 class ChatGroup extends BaseModel {}
 
@@ -13,7 +11,7 @@ ChatGroup.initialize({
     //WARN: Unique constraint missing
   },
   bio: {
-    type: DataTypes.STRING,
+    type: DataTypes.TEXT,
     allowNull: true,
   },
   adminId: {
@@ -27,7 +25,13 @@ ChatGroup.initialize({
   profile: {
     type: DataTypes.TEXT,
     file: true,
+    defaultValue: "user-profile.png",
   },
+});
+
+ChatGroup.belongsTo(User, {
+  foreignKey: "adminId",
+  as: "Admin",
 });
 
 export default ChatGroup;

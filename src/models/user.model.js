@@ -73,6 +73,8 @@ User.initialize(
     },
     profile: {
       type: DataTypes.TEXT,
+      file: true,
+      defaultValue: "user-profile.png",
       allowNull: true,
     },
     dob: {

@@ -14,6 +14,7 @@ ChatGroupMember.initialize(
         model: User,
         key: User.primaryKeyAttribute,
       },
+      onDelete: "CASCADE",
     },
     groupId: {
       type: DataTypes.INTEGER,
@@ -22,6 +23,7 @@ ChatGroupMember.initialize(
         model: ChatGroup,
         key: ChatGroup.primaryKeyAttribute,
       },
+      onDelete: "CASCADE",
     },
   },
   {
@@ -34,14 +36,8 @@ ChatGroupMember.initialize(
   },
 );
 
-ChatGroupMember.belongsTo(
-  User,
-  {foreignKey:"userId"}
-)
+ChatGroupMember.belongsTo(User, { foreignKey: "userId" });
 
-ChatGroupMember.belongsTo(
-  ChatGroup,
-  {foreignKey:"groupId"}
-)
+ChatGroupMember.belongsTo(ChatGroup, { foreignKey: "groupId" });
 
 export default ChatGroupMember;

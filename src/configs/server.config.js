@@ -18,7 +18,7 @@ const app = express();
 await sequelize.authenticate();
 // await sequelize.sync({ alter: true });
 
-export const server = createServer(app)
+export const server = createServer(app);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
