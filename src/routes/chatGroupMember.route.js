@@ -1,11 +1,19 @@
 import express from "express";
 import asyncHandler from "#utils/asyncHandler";
-import ChatGroupMemberController from "#controllers/chatGroupMember";
 import { authentication } from "#middlewares/authentication";
+import ChatGroupMemberController from "#controllers/chatGroupMember";
 
 const router = express.Router();
 
 router.use(authentication);
+
+router
+  .route("/remove-member/:groupId/:memberId")
+  .delete(
+    asyncHandler(
+      ChatGroupMemberController.removeMember.bind(ChatGroupMemberController),
+    ),
+  );
 
 router
   .route("/group-list")

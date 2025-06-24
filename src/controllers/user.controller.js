@@ -23,6 +23,10 @@ class UserController extends BaseController {
     return this.getCurrentUser(req, res, next);
   }
 
+  static async create(req, res, next) {
+    const userData = await this.Service.create(req.body);
+  }
+
   static async login(req, res, next) {
     const tokenData = await this.Service.login(req.body);
     sendResponse(httpStatus.OK, res, tokenData, "Logged in successfully");

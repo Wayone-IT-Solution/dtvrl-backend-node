@@ -40,7 +40,17 @@ class ChatGroupMemberController extends BaseController {
       });
     }
 
-    await super.create(req, res, next);
+    const { userIds } = req.body;
+
+    const groupMembers = userIds.map((id) => {
+      return this.Service.create({
+        groupId: req.body.groupId,
+        userId: id,
+      });
+    });
+
+    await Promise.all(groupMembers);
+    sendResponse(httpStatus.CREATED, res, null, "Members added successfully");
   }
 
   static async getGroupList(req, res, next) {
@@ -82,12 +92,63 @@ class ChatGroupMemberController extends BaseController {
   static async deleteDoc(req, res, next) {
     const userId = session.get("userId");
     const { id: groupId } = req.params;
-    const groupMember = await ChatGroupMemberService.getDocById({
-      groupId,
-      userId,
-    });
-    await groupMember.destroy({ force: true });
+    const groupMember = await ChatGroupMemberService.getDocById(
+      {
+        groupId,
+        userId,
+      },
+      { allowNull: true },
+    );
+
+    if (!groupMember) {
+      throw new AppError({
+        status: false,
+        message: "You are not in this group",
+        httpStatus: httpStatus.BAD_REQUEST,
+      });
+    }
+
+    const group = await ChatGroupService.getDocById(groupId);
+
+    if (group.adminId === userId) {
+      await group.destroy({ force: true });
+    } else {
+      await groupMember.destroy({ force: true });
+    }
+
     sendResponse(httpStatus.OK, res, null, "Group exited successfully");
+  }
+
+  static async removeMember(req, res, next) {
+    const userId = session.get("userId");
+    const { groupId, memberId } = req.params;
+
+    const group = await ChatGroupService.getDocById(groupId);
+    if (group.adminId !== userId) {
+      throw new AppError({
+        status: false,
+        message: "You aren't the admin of this group",
+        httpStatus: httpStatus.FORBIDDEN,
+      });
+    }
+
+    const member = await ChatGroupMemberService.getDoc(
+      { userId: memberId },
+      {
+        allowNull: true,
+      },
+    );
+
+    if (!member) {
+      throw new AppError({
+        status: false,
+        message: "This member is not from this group",
+        httpStatus: httpStatus.BAD_REQUEST,
+      });
+    }
+
+    await member.destroy({ force: true });
+    sendResponse(httpStatus.OK, res, null, "Member removed successfully");
   }
 }
 

@@ -46,4 +46,14 @@ UserFollow.initialize(
   },
 );
 
+UserFollow.belongsTo(User, {
+  foreignKey: "userId",
+  as: "user",
+});
+
+UserFollow.belongsTo(User, {
+  foreignKey: "otherId",
+  as: "otherUser",
+});
+
 export default UserFollow;
