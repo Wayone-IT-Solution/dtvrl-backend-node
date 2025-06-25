@@ -166,38 +166,38 @@ class AdminController extends BaseController {
     sendResponse(httpStatus.OK, res, posts);
   }
 
-  // static async getItinerary(req, res, next) {
-  //   const { id } = req.params;
-  //   const customOptions = {
-  //     include: [
-  //       {
-  //         model: UserService.Model,
-  //         attributes: ["id", "name", "profile"],
-  //       },
-  //     ],
-  //   };
-  //
-  //   const options = this.Service.getOptions(req.query, customOptions);
-  //   const data = await ItineraryService.get(id, req.query, options);
-  //   sendResponse(httpStatus.OK, res, data);
-  // }
+  static async getItinerary(req, res, next) {
+    const { id } = req.params;
+    const customOptions = {
+      include: [
+        {
+          model: UserService.Model,
+          attributes: ["id", "name", "profile"],
+        },
+      ],
+    };
 
-  // static async createItinerary(req, res, next) {
-  //   const data = await ItineraryService.create(req.body);
-  //   sendResponse(httpStatus.CREATED, res, data);
-  // }
-  //
-  // static async updateItinerary(req, res, next) {
-  //   const { id } = req.params;
-  //   const data = await ItineraryService.update(id, req.body);
-  //   sendResponse(httpStatus.OK, res, data);
-  // }
-  //
-  // static async deleteItinerary(req, res, next) {
-  //   const { id } = req.params;
-  //   const data = await ItineraryService.deleteDoc(id);
-  //   sendResponse(httpStatus.OK, res, null);
-  // }
+    const options = this.Service.getOptions(req.query, customOptions);
+    const data = await ItineraryService.get(id, req.query, options);
+    sendResponse(httpStatus.OK, res, data);
+  }
+
+  static async createItinerary(req, res, next) {
+    const data = await ItineraryService.create(req.body);
+    sendResponse(httpStatus.CREATED, res, data);
+  }
+
+  static async updateItinerary(req, res, next) {
+    const { id } = req.params;
+    const data = await ItineraryService.update(id, req.body);
+    sendResponse(httpStatus.OK, res, data);
+  }
+
+  static async deleteItinerary(req, res, next) {
+    const { id } = req.params;
+    const data = await ItineraryService.deleteDoc(id);
+    sendResponse(httpStatus.OK, res, null);
+  }
 
   static async getBuckets(req, res, next) {
     const { id } = req.params;
@@ -220,9 +220,20 @@ class AdminController extends BaseController {
     sendResponse(httpStatus.CREATED, res, bucket);
   }
 
+  static async updateBuckets(req, res, next) {
+    const { id } = req.params;
+    const data = await BucketService.update(id, req.body);
+    sendResponse(httpStatus.OK, res, data);
+  }
+
+  static async deleteBuckets(req, res, next) {
+    const { id } = req.params;
+    await BucketService.deleteDoc(id);
+    sendResponse(httpStatus.OK, res, null, "Bucket deleted successfully");
+  }
+
   static async getLocations(req, res, next) {
     const { id } = req.params;
-
     const options = this.Service.getOptions(req.query, {});
 
     const data = await LocationService.get(id, req.query, options);

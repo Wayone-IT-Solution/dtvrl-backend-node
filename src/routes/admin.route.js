@@ -41,18 +41,20 @@ router
 router
   .route("/buckets/:id?")
   .get(asyncHandler(AdminController.getBuckets.bind(AdminController)))
-  .post(asyncHandler(AdminController.createBuckets.bind(AdminController)));
+  .post(asyncHandler(AdminController.createBuckets.bind(AdminController)))
+  .put(asyncHandler(AdminController.updateBuckets.bind(AdminController)))
+  .delete(asyncHandler(AdminController.deleteBuckets.bind(AdminController)));
 
 router
   .route("/locations/:id?")
   .get(asyncHandler(AdminController.getLocations.bind(AdminController)));
 
-// router
-//   .route("/itineraries/:id?")
-//   .get(asyncHandler(AdminController.getItineraries.bind(AdminController)));
-// .post(asyncHandler(AdminController.createItinerary.bind(AdminController)))
-// .put(asyncHandler(AdminController.updateItinerary.bind(AdminController)))
-// .delete(asyncHandler(AdminController.deleteItinerary.bind(AdminController)));
+router
+  .route("/itineraries/:id?")
+  .get(asyncHandler(AdminController.getItineraries.bind(AdminController)))
+  .post(asyncHandler(AdminController.createItinerary.bind(AdminController)))
+  .put(asyncHandler(AdminController.updateItinerary.bind(AdminController)))
+  .delete(asyncHandler(AdminController.deleteItinerary.bind(AdminController)));
 
 router
   .route("/location-reviews/:id?")
