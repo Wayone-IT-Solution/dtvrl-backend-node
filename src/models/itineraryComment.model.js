@@ -13,6 +13,7 @@ ItineraryComment.initialize({
       model: User,
       key: User.primaryKeyAttribute,
     },
+    onDelete: "CASCADE",
   },
   itineraryId: {
     type: DataTypes.INTEGER,
@@ -21,6 +22,7 @@ ItineraryComment.initialize({
       model: Itinerary,
       key: Itinerary.primaryKeyAttribute,
     },
+    onDelete: "CASCADE",
   },
   comment: {
     type: DataTypes.TEXT,

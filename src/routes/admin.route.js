@@ -16,8 +16,23 @@ router
   .get(asyncHandler(AdminController.getCurrentUser.bind(AdminController)));
 
 router
+  .route("/chat-groups")
+  .get(asyncHandler(AdminController.getChatgroups.bind(AdminController)));
+
+router
+  .route("/memories")
+  .get(asyncHandler(AdminController.getMemories.bind(AdminController)));
+
+router
+  .route("/stamps")
+  .get(asyncHandler(AdminController.getStamps.bind(AdminController)));
+
+router
   .route("/users/:id?")
-  .get(asyncHandler(AdminController.getUsers.bind(AdminController)));
+  .get(asyncHandler(AdminController.getUsers.bind(AdminController)))
+  .post(asyncHandler(AdminController.createUsers.bind(AdminController)))
+  .put(asyncHandler(AdminController.updateUsers.bind(AdminController)))
+  .delete(asyncHandler(AdminController.deleteUsers.bind(AdminController)));
 
 router
   .route("/posts/:id?")
@@ -25,15 +40,19 @@ router
 
 router
   .route("/buckets/:id?")
-  .get(asyncHandler(AdminController.getBuckets.bind(AdminController)));
+  .get(asyncHandler(AdminController.getBuckets.bind(AdminController)))
+  .post(asyncHandler(AdminController.createBuckets.bind(AdminController)));
 
 router
   .route("/locations/:id?")
   .get(asyncHandler(AdminController.getLocations.bind(AdminController)));
 
-router
-  .route("/itineraries/:id?")
-  .get(asyncHandler(AdminController.getItineraries.bind(AdminController)));
+// router
+//   .route("/itineraries/:id?")
+//   .get(asyncHandler(AdminController.getItineraries.bind(AdminController)));
+// .post(asyncHandler(AdminController.createItinerary.bind(AdminController)))
+// .put(asyncHandler(AdminController.updateItinerary.bind(AdminController)))
+// .delete(asyncHandler(AdminController.deleteItinerary.bind(AdminController)));
 
 router
   .route("/location-reviews/:id?")

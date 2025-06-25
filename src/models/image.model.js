@@ -17,6 +17,7 @@ Image.initialize({
       model: Memory,
       key: Memory.primaryKeyAttribute,
     },
+    onDelete: "CASCADE",
   },
 });
 

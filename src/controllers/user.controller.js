@@ -34,7 +34,7 @@ class UserController extends BaseController {
 
   static async getCurrentUser(req, res, next) {
     const userId = req.params.id ?? session.get("userId");
-    const user = await this.Service.Model.findOne({
+    let user = await this.Service.Model.findOne({
       where: { id: userId },
       attributes: {
         include: [
@@ -99,6 +99,9 @@ class UserController extends BaseController {
         httpStatus: httpStatus.FORBIDDEN,
       });
     }
+
+    user = user.toJSON();
+    delete user.password;
     sendResponse(httpStatus.OK, res, user);
   }
 

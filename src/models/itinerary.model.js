@@ -33,6 +33,7 @@ Itinerary.initialize({
       model: User,
       key: User.primaryKeyAttribute,
     },
+    onDelete: "CASCADE",
   },
   description: {
     type: DataTypes.TEXT,

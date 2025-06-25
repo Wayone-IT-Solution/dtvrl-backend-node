@@ -17,6 +17,7 @@ PostComment.initialize({
       model: User,
       key: User.primaryKeyAttribute,
     },
+    onDelete: "CASCADE",
   },
   postId: {
     type: DataTypes.INTEGER,
@@ -25,6 +26,7 @@ PostComment.initialize({
       model: Post,
       key: Post.primaryKeyAttribute,
     },
+    onDelete: "CASCADE",
   },
 });
 

@@ -1,9 +1,8 @@
+import httpStatus from "http-status";
 import BaseController from "#controllers/base";
 import { sendResponse } from "#utils/response";
 import ChatGroupService from "#services/chatGroup";
 import { session } from "#middlewares/requestSession";
-import httpStatus from "http-status";
-import ChatGroupMemberService from "#services/chatGroupMember";
 
 class ChatGroupController extends BaseController {
   static Service = ChatGroupService;
@@ -11,10 +10,6 @@ class ChatGroupController extends BaseController {
   static async create(req, res, next) {
     req.body.adminId = session.get("userId");
     const data = await this.Service.create(req.body);
-    const groupMember = await ChatGroupMemberService.create({
-      groupId: data.id,
-      userId: req.body.adminId,
-    });
     sendResponse(httpStatus.OK, res, data);
   }
 

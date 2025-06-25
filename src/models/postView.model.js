@@ -21,6 +21,7 @@ PostView.initialize({
       model: User,
       key: User.primaryKeyAttribute,
     },
+    onDelete: "CASCADE",
   },
 });
 

@@ -21,6 +21,7 @@ ChatGroup.initialize({
       model: User,
       key: User.primaryKeyAttribute,
     },
+    onDelete: "CASCADE",
   },
   profile: {
     type: DataTypes.TEXT,

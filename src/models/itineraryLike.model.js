@@ -5,23 +5,26 @@ import User from "#models/user";
 
 class ItineraryLike extends BaseModel {}
 
-ItineraryLike.initialize({
-  itineraryId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: Itinerary,
-      key: Itinerary.primaryKeyAttribute,
+ItineraryLike.initialize(
+  {
+    itineraryId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: Itinerary,
+        key: Itinerary.primaryKeyAttribute,
+      },
+      onDelete: "CASCADE",
     },
-  },
-  userId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: User,
-      key: User.primaryKeyAttribute,
+    userId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: User,
+        key: User.primaryKeyAttribute,
+      },
+      onDelete: "CASCADE",
     },
-  },
   },
   {
     indexes: [
@@ -30,7 +33,8 @@ ItineraryLike.initialize({
         fields: ["itineraryId", "userId"],
       },
     ],
-});
+  },
+);
 
 ItineraryLike.belongsTo(Itinerary, {
   foreignKey: "itineraryId",

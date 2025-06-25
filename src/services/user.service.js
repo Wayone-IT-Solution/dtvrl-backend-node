@@ -4,8 +4,6 @@ import httpStatus from "http-status";
 import AppError from "#utils/appError";
 import BaseService from "#services/base";
 import { createToken } from "#utils/jwt";
-import UserFollow from "#models/userFollow";
-import { session } from "#middlewares/requestSession";
 
 class UserService extends BaseService {
   static Model = User;
@@ -42,6 +40,11 @@ class UserService extends BaseService {
   static async update(id, data) {
     delete data.password;
     return await super.update(id, data);
+  }
+
+  static async deleteDoc(id) {
+    const doc = await this.getDocById(id);
+    await doc.destroy({ force: true });
   }
 }
 

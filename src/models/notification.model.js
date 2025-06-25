@@ -16,6 +16,7 @@ Notification.initialize({
       model: User,
       key: User.primaryKeyAttribute,
     },
+    onDelete: "CASCADE",
   },
   readByUser: {
     type: DataTypes.BOOLEAN,

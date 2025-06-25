@@ -92,7 +92,7 @@ class ChatGroupMemberController extends BaseController {
   static async deleteDoc(req, res, next) {
     const userId = session.get("userId");
     const { id: groupId } = req.params;
-    const groupMember = await ChatGroupMemberService.getDocById(
+    const groupMember = await ChatGroupMemberService.getDoc(
       {
         groupId,
         userId,
@@ -110,7 +110,7 @@ class ChatGroupMemberController extends BaseController {
 
     const group = await ChatGroupService.getDocById(groupId);
 
-    if (group.adminId === userId) {
+    if (group.adminId === Number(userId)) {
       await group.destroy({ force: true });
     } else {
       await groupMember.destroy({ force: true });

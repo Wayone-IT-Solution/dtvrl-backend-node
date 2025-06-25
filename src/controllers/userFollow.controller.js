@@ -49,7 +49,7 @@ class UserFollowController extends BaseController {
     const { searchIn } = req.query;
 
     if (searchIn) {
-      req.query.searchIn = "user.username";
+      req.query.searchIn = "otherUser.username";
     }
 
     const customOptions = {

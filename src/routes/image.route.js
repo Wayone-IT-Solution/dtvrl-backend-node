@@ -22,6 +22,10 @@ router
 async function downloadFile(req, res) {
   const fileKey = req.query.key;
 
+  if (!fileKey) {
+    return res.status(404).json({ status: false, message: "Invalid path" });
+  }
+
   try {
     const command = new GetObjectCommand({
       Bucket: process.env.AWS_BUCKET_NAME,

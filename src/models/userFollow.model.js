@@ -15,6 +15,7 @@ UserFollow.initialize(
         model: User,
         key: User.primaryKeyAttribute,
       },
+      onDelete: "CASCADE",
     },
     otherId: {
       type: DataTypes.INTEGER,
@@ -23,6 +24,7 @@ UserFollow.initialize(
         model: User,
         key: User.primaryKeyAttribute,
       },
+      onDelete: "CASCADE",
     },
   },
   {

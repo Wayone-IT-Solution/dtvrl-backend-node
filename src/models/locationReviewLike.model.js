@@ -18,6 +18,7 @@ LocationReviewLike.initialize(
         name: "user_locationreview_index",
         msg: "You have already liked this review.",
       },
+      onDelete: "CASCADE",
     },
     locationReviewId: {
       type: DataTypes.INTEGER,
@@ -26,6 +27,7 @@ LocationReviewLike.initialize(
         model: LocationReview,
         key: LocationReview.primaryKeyAttribute,
       },
+      onDelete: "CASCADE",
     },
   },
   {

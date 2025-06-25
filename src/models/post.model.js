@@ -16,6 +16,7 @@ Post.initialize({
       model: User,
       key: User.primaryKeyAttribute,
     },
+    onDelete: "CASCADE",
   },
   image: {
     type: DataTypes.TEXT,

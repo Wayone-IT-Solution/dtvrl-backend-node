@@ -1,7 +1,7 @@
+import User from "#models/user";
 import BaseModel from "#models/base";
 import { DataTypes } from "sequelize";
 import Itinerary from "#models/itinerary";
-import User from "#models/user";
 
 class ItineraryShareList extends BaseModel {}
 
@@ -18,6 +18,7 @@ ItineraryShareList.initialize(
         name: "user_itinerary_index",
         msg: "You have already liked this review.",
       },
+      onDelete: "CASCADE",
     },
     userId: {
       type: DataTypes.INTEGER,
@@ -30,6 +31,7 @@ ItineraryShareList.initialize(
         name: "user_itinerary_index",
         msg: "You have already liked this review.",
       },
+      onDelete: "CASCADE",
     },
   },
   {

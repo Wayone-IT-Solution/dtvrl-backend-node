@@ -13,6 +13,7 @@ Stamp.initialize({
       model: Memory,
       key: Memory.primaryKeyAttribute,
     },
+    onDelete: "CASCADE",
     unqiue: false,
   },
   userId: {
@@ -22,12 +23,21 @@ Stamp.initialize({
       model: User,
       key: User.primaryKeyAttribute,
     },
+    onDelete: "CASCADE",
   },
   image: {
     type: DataTypes.TEXT,
     allowNull: true,
     file: true,
   },
+});
+
+Stamp.belongsTo(Memory, {
+  foreignKey: "memoryId",
+});
+
+Stamp.belongsTo(User, {
+  foreignKey: "userId",
 });
 
 export default Stamp;

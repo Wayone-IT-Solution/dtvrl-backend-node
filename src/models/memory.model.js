@@ -15,6 +15,7 @@ Memory.initialize(
         model: User,
         key: User.primaryKeyAttribute,
       },
+      onDelete: "CASCADE",
     },
     name: {
       type: DataTypes.STRING,
@@ -53,6 +54,10 @@ Memory.initialize(
 );
 
 User.hasMany(Memory, {
+  foreignKey: "userId",
+});
+
+Memory.belongsTo(User, {
   foreignKey: "userId",
 });
 

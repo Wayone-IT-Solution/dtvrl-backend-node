@@ -276,7 +276,6 @@ class BaseModel extends Model {
     const transaction = session.get("transaction");
 
     const doc = await super.save({ transaction });
-
     const files = session.get("files");
     if (files?.length) {
       const attributes = this.constructor.rawAttributes;
@@ -287,10 +286,10 @@ class BaseModel extends Model {
         "image/gif",
         "image/webp",
         "application/pdf",
+        "image/heic",
       ];
 
       const filesPromises = [];
-
       for (const file of files) {
         if (
           attributes[file.fieldname] &&
@@ -310,7 +309,8 @@ class BaseModel extends Model {
 
             if (
               file.mimetype.startsWith("image/") &&
-              file.mimetype !== "application/pdf"
+              file.mimetype !== "application/pdf" &&
+              file.mimetype !== "image/heic"
             ) {
               try {
                 bufferToUpload = await sharp(file.buffer)
@@ -334,7 +334,7 @@ class BaseModel extends Model {
                 ? this.dataValues.createdAt.toISOString().replace(/:/g, "-")
                 : Date.now();
 
-            const fileName = `${this.constructor.updatedName()}/${file.fieldname}/${baseName}/${doc.id}${extension}`;
+            const fileName = `${this.constructor.updatedName()}/${file.fieldname}/${doc.id}${extension}`;
 
             const uploadResult = await uploadFile(
               fileName,

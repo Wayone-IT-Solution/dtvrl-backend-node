@@ -18,6 +18,7 @@ LocationReview.initialize(
         name: "user_location_index",
         msg: "You have already reviewed this location.",
       },
+      onDelete: "CASCADE",
     },
     locationId: {
       type: DataTypes.INTEGER,
@@ -26,6 +27,7 @@ LocationReview.initialize(
         model: Location,
         key: Location.primaryKeyAttribute,
       },
+      onDelete: "CASCADE",
     },
     review: {
       type: DataTypes.TEXT,

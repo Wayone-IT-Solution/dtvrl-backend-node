@@ -40,4 +40,6 @@ ChatGroupMember.belongsTo(User, { foreignKey: "userId" });
 
 ChatGroupMember.belongsTo(ChatGroup, { foreignKey: "groupId" });
 
+ChatGroup.hasMany(ChatGroupMember, { foreignKey: "groupId" });
+
 export default ChatGroupMember;

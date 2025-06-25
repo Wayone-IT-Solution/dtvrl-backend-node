@@ -13,6 +13,7 @@ Bucket.initialize({
       model: User,
       key: User.primaryKeyAttribute,
     },
+    onDelete: "CASCADE",
   },
   name: {
     type: DataTypes.STRING,

@@ -18,6 +18,7 @@ Message.initialize({
       model: User,
       key: User.primaryKeyAttribute,
     },
+    onDelete: "CASCADE",
   },
   receiverId: {
     type: DataTypes.INTEGER,
@@ -26,6 +27,7 @@ Message.initialize({
       model: User,
       key: User.primaryKeyAttribute,
     },
+    onDelete: "CASCADE",
   },
   readByUser: {
     type: DataTypes.BOOLEAN,

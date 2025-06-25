@@ -13,6 +13,7 @@ LocationReviewComment.initialize({
       model: User,
       key: User.primaryKeyAttribute,
     },
+    onDelete: "CASCADE",
   },
   locationReviewId: {
     type: DataTypes.INTEGER,
@@ -21,6 +22,7 @@ LocationReviewComment.initialize({
       model: LocationReview,
       key: LocationReview.primaryKeyAttribute,
     },
+    onDelete: "CASCADE",
   },
   comment: {
     type: DataTypes.TEXT,

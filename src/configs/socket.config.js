@@ -1,23 +1,15 @@
-import {
-  Server
-} from "socket.io";
 import path from "path";
-import {
-  fileURLToPath
-} from "url";
-import Message from "#models/message";
-import ChatGroup from "#models/chatGroup";
-import ChatGroupMember from "#models/chatGroupMember";
 import User from "#models/user";
-import {
-  server
-} from "#configs/server";
-import {
-  session
-} from "#middlewares/requestSession";
-import sequelize from "#configs/database";
-import ChatGroupMessage from "#models/chatGroupMessage";
+import { Server } from "socket.io";
+import { fileURLToPath } from "url";
+import Message from "#models/message";
 import UserService from "#services/user";
+import { server } from "#configs/server";
+import sequelize from "#configs/database";
+import ChatGroup from "#models/chatGroup";
+import { session } from "#middlewares/requestSession";
+import ChatGroupMember from "#models/chatGroupMember";
+import ChatGroupMessage from "#models/chatGroupMessage";
 // import saveFile from "#utils/upload"; // optional
 
 // ========== In-memory tracking ==========
@@ -59,16 +51,13 @@ io.on("connection", (socket) => {
   });
 
   // Join group room
-  socket.on("addUserToGroup", async ({
-    userId,
-    groupId
-  }) => {
+  socket.on("addUserToGroup", async ({ userId, groupId }) => {
     if (!userId || !groupId) return;
 
     const isMember = await ChatGroupMember.findOne({
       where: {
         userId,
-        groupId
+        groupId,
       },
     });
     if (isMember) {
@@ -85,12 +74,7 @@ io.on("connection", (socket) => {
         transaction = await sequelize.transaction();
         session.set("transaction", transaction);
 
-        const {
-          senderId,
-          receiverId,
-          text,
-          uniqueId
-        } = payload;
+        const { senderId, receiverId, text, uniqueId } = payload;
         if (!senderId || !receiverId || (!text && !file)) {
           return io.to(socket.id).emit("message", {
             status: false,
@@ -125,23 +109,21 @@ io.on("connection", (socket) => {
           message: text || null,
           file: filePath,
         });
-        console.log(message)
         const receiverSockets = userList[receiverId];
         const senderSockets = userList[senderId];
-        console.log(receiverSockets,senderSockets)
         receiverSockets?.forEach((id) =>
           socket.to(id).emit("message", {
             uniqueId,
             message,
-            user: safeUser
-          })
+            user: safeUser,
+          }),
         );
         senderSockets?.forEach((id) =>
           io.to(id).emit("message-sent", {
             uniqueId,
             message,
-            user: safeUser
-          })
+            user: safeUser,
+          }),
         );
 
         await transaction.commit();
@@ -165,13 +147,7 @@ io.on("connection", (socket) => {
         transaction = await sequelize.transaction();
         session.set("transaction", transaction);
 
-        const {
-          senderId,
-          groupId,
-          text,
-          uniqueId
-        } = payload;
-        console.log(senderId, groupId, text, uniqueId);
+        const { senderId, groupId, text, uniqueId } = payload;
         if (!senderId || !groupId || (!text && !file)) {
           return io.to(socket.id).emit("groupMessage", {
             status: false,
@@ -182,7 +158,7 @@ io.on("connection", (socket) => {
         const isMember = await ChatGroupMember.findOne({
           where: {
             groupId,
-            userId: senderId
+            userId: senderId,
           },
         });
         if (!isMember) {
@@ -230,18 +206,15 @@ io.on("connection", (socket) => {
 
         // Optionally emit to sender for confirmation
         const senderSockets = userList[senderId];
-        console.log(senderSockets)
         senderSockets?.forEach((id) => {
           {
             io.to(id).emit("groupMessage-sent", {
               uniqueId,
               message,
-              user: safeUser
+              user: safeUser,
             });
-            console.log(id);
           }
         });
-        console.log("data");
 
         await transaction.commit();
       } catch (err) {
@@ -253,12 +226,9 @@ io.on("connection", (socket) => {
   });
 
   // Typing for group via room
-  socket.on("group-typing", ({
-    groupId,
-    senderId
-  }) => {
+  socket.on("group-typing", ({ groupId, senderId }) => {
     socket.to(groupId?.toString()).emit("group-is-typing", {
-      senderId
+      senderId,
     });
   });
 
@@ -280,14 +250,17 @@ io.on("connection", (socket) => {
         const receiverId = socketList[socket.id];
         const senderId = payload;
 
-        await Message.update({
-          readByUser: true
-        }, {
-          where: {
-            receiverId,
-            senderId
-          }
-        });
+        await Message.update(
+          {
+            readByUser: true,
+          },
+          {
+            where: {
+              receiverId,
+              senderId,
+            },
+          },
+        );
 
         await transaction.commit();
       } catch (err) {
