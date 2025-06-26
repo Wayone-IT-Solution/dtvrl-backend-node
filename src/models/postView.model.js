@@ -13,6 +13,7 @@ PostView.initialize({
       model: Post,
       key: Post.primaryKeyAttribute,
     },
+    onDelete: "CASCADE",
   },
   userId: {
     type: DataTypes.INTEGER,

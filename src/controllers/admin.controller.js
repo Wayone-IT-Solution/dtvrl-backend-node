@@ -12,10 +12,13 @@ import LocationService from "#services/location";
 import PostLikeService from "#services/postLike";
 import ItineraryService from "#services/itinerary";
 import ChatGroupService from "#services/chatGroup";
+import UserFollowService from "#services/userFollow";
 import { session } from "#middlewares/requestSession";
 import PostCommentService from "#services/postComment";
+import ItineraryLikeService from "#services/itineraryLike";
 import LocationReviewService from "#services/locationReview";
-import ChatGroupMemberService from "#services/chatGroupMember";
+import ItineraryCommentService from "#services/itineraryComment";
+import ItineraryShareListService from "#services/itineraryShareList";
 
 class AdminController extends BaseController {
   static Service = AdminService;
@@ -31,6 +34,28 @@ class AdminController extends BaseController {
     sendResponse(httpStatus.OK, res, loggedInUser);
   }
 
+  static async getFollowers(req, res, next) {
+    const { userId, otherId } = req.query;
+    const customOptions = {
+      include: [
+        {
+          model: UserService.Model,
+          as: userId ? "otherUser" : "user",
+          attributes: ["id", "name", "profile", "username", "email"],
+        },
+      ],
+      attributes: ["id", "createdAt", "userId", "otherId"],
+    };
+
+    if (userId) delete req.query.otherId;
+    if (otherId) delete req.query.userId;
+
+    const options = this.Service.getOptions(req.query, customOptions);
+    const data = await UserFollowService.get(null, req.query, options);
+
+    sendResponse(httpStatus.OK, res, data);
+  }
+
   static async getChatgroups(req, res, next) {
     const { id } = req.params;
     const customOptions = {
@@ -38,7 +63,7 @@ class AdminController extends BaseController {
         {
           model: UserService.Model,
           as: "Admin",
-          attributes: ["id", "name", "profile"],
+          attributes: ["id", "name", "profile", "username", "email"],
         },
       ],
     };
@@ -78,7 +103,7 @@ class AdminController extends BaseController {
       include: [
         {
           model: UserService.Model,
-          attributes: ["id", "name", "profile"],
+          attributes: ["id", "name", "profile", "username", "email"],
         },
       ],
       attributes: [
@@ -96,6 +121,12 @@ class AdminController extends BaseController {
     sendResponse(httpStatus.OK, res, data);
   }
 
+  static async deleteMemory(req, res, next) {
+    const { id } = req.params;
+    await MemoryService.deleteDoc(id);
+    sendResponse(httpStatus.OK, res, null, "Memory deleted successfully");
+  }
+
   static async getStamps(req, res, next) {
     const { id } = req.params;
 
@@ -107,7 +138,7 @@ class AdminController extends BaseController {
         },
         {
           model: UserService.Model,
-          attributes: ["id", "name", "profile"],
+          attributes: ["id", "name", "profile", "username", "email"],
         },
       ],
     };
@@ -166,13 +197,30 @@ class AdminController extends BaseController {
     sendResponse(httpStatus.OK, res, posts);
   }
 
+  static async createPost(req, res, next) {
+    const data = await PostService.create(req.body);
+    sendResponse(httpStatus.CREATED, res, data);
+  }
+
+  static async updatePost(req, res, next) {
+    const { id } = req.params;
+    const data = await PostService.update(id, req.body);
+    sendResponse(httpStatus.OK, res, data);
+  }
+
+  static async deletePost(req, res, next) {
+    const { id } = req.params;
+    await PostService.deleteDoc(id);
+    sendResponse(httpStatus.OK, res, null, "Post deleted successfully");
+  }
+
   static async getItinerary(req, res, next) {
     const { id } = req.params;
     const customOptions = {
       include: [
         {
           model: UserService.Model,
-          attributes: ["id", "name", "profile"],
+          attributes: ["id", "name", "profile", "username", "email"],
         },
       ],
     };
@@ -195,7 +243,7 @@ class AdminController extends BaseController {
 
   static async deleteItinerary(req, res, next) {
     const { id } = req.params;
-    const data = await ItineraryService.deleteDoc(id);
+    await ItineraryService.deleteDoc(id);
     sendResponse(httpStatus.OK, res, null);
   }
 
@@ -205,7 +253,7 @@ class AdminController extends BaseController {
       include: [
         {
           model: UserService.Model,
-          attributes: ["id", "name", "profile"],
+          attributes: ["id", "name", "profile", "username", "email"],
         },
       ],
     };
@@ -247,11 +295,10 @@ class AdminController extends BaseController {
       include: [
         {
           model: UserService.Model,
-          attributes: ["id", "name", "profile"],
+          attributes: ["id", "name", "username", "profile", "email"],
         },
       ],
     };
-
     const options = this.Service.getOptions(req.query, customOptions);
 
     const data = await ItineraryService.get(id, req.query, options);
@@ -265,7 +312,7 @@ class AdminController extends BaseController {
       include: [
         {
           model: UserService.Model,
-          attributes: ["id", "name", "profile"],
+          attributes: ["id", "name", "profile", "username", "email"],
         },
         {
           model: LocationService.Model,
@@ -278,6 +325,24 @@ class AdminController extends BaseController {
 
     const data = await LocationReviewService.get(id, req.query, options);
     sendResponse(httpStatus.OK, res, data);
+  }
+
+  static async updateLocationReviews(req, res, next) {
+    const { id } = req.params;
+    const data = await LocationReviewService.update(id, req.body);
+    sendResponse(httpStatus.OK, res, data);
+  }
+
+  static async deleteLocationReviews(req, res, next) {
+    const { id } = req.params;
+    await LocationReviewService.deleteDoc(id);
+    sendResponse(httpStatus.OK, res, null);
+  }
+
+  static async deleteLocations(req, res, next) {
+    const { id } = req.params;
+    await LocationService.deleteDoc(id);
+    sendResponse(httpStatus.OK, res, null);
   }
 }
 
