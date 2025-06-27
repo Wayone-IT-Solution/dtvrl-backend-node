@@ -14,11 +14,6 @@ class PostController extends BaseController {
   static async get(req, res, next) {
     const { id } = req.params;
 
-    if (id) {
-      const data = await this.Service.getDocById(id);
-      sendResponse(httpStatus.OK, res, data);
-    }
-
     const customOptions = {
       include: [
         {
@@ -61,6 +56,11 @@ class PostController extends BaseController {
     };
 
     const options = this.Service.getOptions(req.query, customOptions);
+    if (id) {
+      const data = await this.Service.getDoc({ id }, options);
+      sendResponse(httpStatus.OK, res, data);
+    }
+
     const data = await this.Service.get(null, req.query, options);
 
     sendResponse(httpStatus.OK, res, data, "Posts fetched successfully");
