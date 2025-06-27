@@ -66,7 +66,7 @@ class LocationReviewController extends BaseController {
   static async update(req, res, next) {
     const userId = session.get("userId");
     const { id } = req.params;
-    const doc = await this.Model.findDoc({ userId, id });
+    const doc = await this.Service.getDoc({ userId, id });
 
     doc.updateFields(req.body);
     await doc.save();
