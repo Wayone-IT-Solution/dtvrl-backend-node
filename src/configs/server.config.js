@@ -42,7 +42,7 @@ app.use(express.urlencoded({ extended: true })); // This will handle x-www-form-
 // Session middleware should come before routes
 app.use(requestSessionMiddleware());
 
-app.use("/.wellknown/assetlinks.json", async (req, res) => {
+app.use("/.well-known/assetlinks.json", async (req, res) => {
   const json = [
     {
       relation: ["delegate_permission/common.handle_all_urls"],
