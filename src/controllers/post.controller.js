@@ -15,7 +15,8 @@ class PostController extends BaseController {
     const { id } = req.params;
 
     if (id) {
-      return await this.Service.getDocById(id);
+      const data = await this.Service.getDocById(id);
+      sendResponse(httpStatus.OK, res, data);
     }
 
     const customOptions = {

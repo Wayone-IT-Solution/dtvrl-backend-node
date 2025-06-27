@@ -6,6 +6,7 @@ import { sendResponse } from "#utils/response";
 import { session } from "#middlewares/requestSession";
 import AppError from "#utils/appError";
 import { literal } from "sequelize";
+import { createToken } from "#utils/jwt";
 import Memory from "#models/memory";
 import LocationReview from "#models/locationReview";
 import Itinerary from "#models/itinerary";
@@ -24,7 +25,20 @@ class UserController extends BaseController {
   }
 
   static async create(req, res, next) {
-    const userData = await this.Service.create(req.body);
+    const user = await this.Service.create(req.body);
+
+    const payload = {
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+    };
+    const token = createToken(payload);
+
+    user = user.toJSON();
+
+    delete user.password;
+    user.token = token;
+    sendResponse(httpStatus.CREATED, res, user, "Signed up successfully");
   }
 
   static async login(req, res, next) {

@@ -1,20 +1,22 @@
 import cors from "cors";
+import path from "path";
 import multer from "multer";
 import morgan from "morgan";
-import path from "path";
-import { fileURLToPath } from "url";
 import express from "express";
+import passport from "passport";
 import router from "#routes/index";
+import { fileURLToPath } from "url";
+import { createServer } from "http";
 import logger from "#configs/logger";
 import httpStatus from "http-status";
 import s3Client from "#configs/awsS3";
 import sequelize from "#configs/database";
 import { globalErrorHandler } from "#utils/error";
 import requestSessionMiddleware from "#middlewares/requestSession";
-import { createServer } from "http";
 
 const app = express();
 // Ensure the database connection is established before starting the app
+
 await sequelize.authenticate();
 // await sequelize.sync({ alter: true });
 

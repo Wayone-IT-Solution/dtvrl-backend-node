@@ -85,6 +85,9 @@ User.initialize(
     bio: {
       type: DataTypes.TEXT,
     },
+    googleId: {
+      type: DataTypes.STRING,
+    },
   },
   {
     hooks: {
