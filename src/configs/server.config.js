@@ -42,6 +42,23 @@ app.use(express.urlencoded({ extended: true })); // This will handle x-www-form-
 // Session middleware should come before routes
 app.use(requestSessionMiddleware());
 
+app.use("/.wellknown/assetlinks.json", async (req, res) => {
+  const json = [
+    {
+      relation: ["delegate_permission/common.handle_all_urls"],
+      target: {
+        namespace: "android_app",
+        package_name: "com.dtvrl.diary",
+        sha256_cert_fingerprints: [
+          "91:73:3D:29:04:32:57:59:C3:1E:50:4D:60:D7:ED:56:4B:5B:F4:82:B0:13:76:EC:E1:58:8D:74:D7:F6:9F:50",
+        ],
+      },
+    },
+  ];
+
+  return res.status(200).json(json);
+});
+
 // Main routes
 app.use("/api", router);
 
