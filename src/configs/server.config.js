@@ -51,6 +51,7 @@ app.use("/.well-known/assetlinks.json", async (req, res) => {
         package_name: "com.dtvrl.diary",
         sha256_cert_fingerprints: [
           "91:73:3D:29:04:32:57:59:C3:1E:50:4D:60:D7:ED:56:4B:5B:F4:82:B0:13:76:EC:E1:58:8D:74:D7:F6:9F:50",
+          "CE:BF:3E:BD:C2:DB:95:2D:96:44:C8:3D:D9:FE:D9:30:15:C2:DA:42:64:80:CD:41:A7:7C:6A:D4:EC:C0:D4:C6",
         ],
       },
     },
