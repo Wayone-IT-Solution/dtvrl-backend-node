@@ -1,7 +1,7 @@
 import express from "express";
 import asyncHandler from "#utils/asyncHandler";
-import LocationReviewController from "#controllers/locationReview";
 import { authentication } from "#middlewares/authentication";
+import LocationReviewController from "#controllers/locationReview";
 
 const router = express.Router();
 

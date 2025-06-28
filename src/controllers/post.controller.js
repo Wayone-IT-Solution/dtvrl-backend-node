@@ -80,8 +80,9 @@ class PostController extends BaseController {
 
     const options = this.Service.getOptions(req.query, customOptions);
     if (id) {
-      const data = await this.Service.getDoc({ id }, options);
-      sendResponse(httpStatus.OK, res, data);
+      options.where.id = id;
+      const data = await this.Service.getDoc({}, options);
+      return sendResponse(httpStatus.OK, res, data);
     }
 
     const data = await this.Service.get(null, req.query, options);
