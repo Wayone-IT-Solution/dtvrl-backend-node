@@ -18,7 +18,7 @@ router.get(
   passport.authenticate("google", { scope: ["profile", "email"] }),
 );
 
-router.post("/auth/google/mobile", googleMobileAuth);
+router.post("/auth/google/mobile", asyncHandler(googleMobileAuth));
 
 router.get(
   "/auth/google/callback",

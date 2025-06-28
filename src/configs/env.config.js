@@ -20,6 +20,7 @@ const env = cleanEnv(process.env, {
   OLA_API_KEY: str(),
   GOOGLE_CLIENT_ID: str(),
   GOOGLE_CLIENT_SECRET: str(),
+  GOOGLE_MOBILE_CLIENT_ID: str(),
 });
 
 export default env;
