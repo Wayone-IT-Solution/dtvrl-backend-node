@@ -26,4 +26,8 @@ PostView.initialize({
   },
 });
 
+Post.hasMany(PostView, {
+  foreignKey: "postId",
+});
+
 export default PostView;

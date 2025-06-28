@@ -1,11 +1,12 @@
 import User from "#models/user";
 import httpStatus from "http-status";
+import { Sequelize } from "sequelize";
+import PostView from "#models/postView";
 import PostLike from "#models/postLike";
 import PostService from "#services/post";
 import PostComment from "#models/postComment";
 import BaseController from "#controllers/base";
 import { sendResponse } from "#utils/response";
-import { Sequelize } from "sequelize";
 import { session } from "#middlewares/requestSession";
 
 class PostController extends BaseController {
@@ -32,16 +33,38 @@ class PostController extends BaseController {
           duplicating: false,
           required: false,
         },
+        {
+          model: PostView,
+          attributes: [],
+          duplicating: false,
+          required: false,
+        },
       ],
       attributes: [
         "id",
         "image",
         "caption",
         "createdAt",
-        [Sequelize.fn("COUNT", Sequelize.col("PostLikes.id")), "likeCount"],
         [
-          Sequelize.fn("COUNT", Sequelize.col("PostComments.id")),
+          Sequelize.fn(
+            "COUNT",
+            Sequelize.fn("DISTINCT", Sequelize.col("PostLikes.id")),
+          ),
+          "likeCount",
+        ],
+        [
+          Sequelize.fn(
+            "COUNT",
+            Sequelize.fn("DISTINCT", Sequelize.col("PostComments.id")),
+          ),
           "commentCount",
+        ],
+        [
+          Sequelize.fn(
+            "COUNT",
+            Sequelize.fn("DISTINCT", Sequelize.col("PostViews.id")),
+          ),
+          "viewCount",
         ],
       ],
       group: [

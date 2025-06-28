@@ -54,20 +54,21 @@ class ItineraryController extends BaseController {
         "peopleCount",
         "createdAt",
         [
-          Sequelize.fn("COUNT", Sequelize.col("ItineraryLikes.id")),
+          Sequelize.fn(
+            "COUNT",
+            Sequelize.fn("DISTINCT", Sequelize.col("ItineraryLikes.id")),
+          ),
           "likeCount",
         ],
         [
-          Sequelize.fn("COUNT", Sequelize.col("ItineraryComments.id")),
+          Sequelize.fn(
+            "COUNT",
+            Sequelize.fn("DISTINCT", Sequelize.col("ItineraryComments.id")),
+          ),
           "commentCount",
         ],
       ],
-      group: [
-        "Itinerary.id",
-        "User.id",
-        "User.username",
-        "Itinerary.createdAt",
-      ],
+      group: ["Itinerary.id", "User.id"],
     };
 
     const options = this.Service.getOptions(req.query, customOptions);
