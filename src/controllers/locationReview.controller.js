@@ -1,12 +1,13 @@
-import LocationReviewService from "#services/locationReview";
-import BaseController from "#controllers/base";
-import { session } from "#middlewares/requestSession";
 import User from "#models/user";
-import LocationReviewComment from "#models/locationReviewComment";
-import LocationReviewLike from "#models/locationReviewLike";
-import { sendResponse } from "#utils/response";
 import httpStatus from "http-status";
+import Location from "#models/location";
+import BaseController from "#controllers/base";
+import { sendResponse } from "#utils/response";
 import { fn, col, Sequelize } from "sequelize";
+import { session } from "#middlewares/requestSession";
+import LocationReviewLike from "#models/locationReviewLike";
+import LocationReviewService from "#services/locationReview";
+import LocationReviewComment from "#models/locationReviewComment";
 
 class LocationReviewController extends BaseController {
   static Service = LocationReviewService;
@@ -25,11 +26,20 @@ class LocationReviewController extends BaseController {
       attributes: {
         include: [
           [
-            Sequelize.fn("COUNT", Sequelize.col("LocationReviewLikes.id")),
+            Sequelize.fn(
+              "COUNT",
+              Sequelize.fn("DISTINCT", Sequelize.col("LocationReviewLikes.id")),
+            ),
             "likeCount",
           ],
           [
-            Sequelize.fn("COUNT", Sequelize.col("LocationReviewComments.id")),
+            Sequelize.fn(
+              "COUNT",
+              Sequelize.fn(
+                "DISTINCT",
+                Sequelize.col("LocationReviewComments.id"),
+              ),
+            ),
             "commentCount",
           ],
         ],
@@ -53,8 +63,14 @@ class LocationReviewController extends BaseController {
           required: false,
           where: { deletedAt: null },
         },
+        {
+          model: Location,
+          attributes: ["id", "name"],
+          required: true,
+          where: { deletedAt: null },
+        },
       ],
-      group: ["LocationReview.id", "User.id"],
+      group: ["LocationReview.id", "User.id", "Location.id"],
     };
 
     const options = this.Service.getOptions(req.query, customOptions);
