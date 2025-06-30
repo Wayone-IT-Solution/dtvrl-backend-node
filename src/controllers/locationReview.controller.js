@@ -74,7 +74,14 @@ class LocationReviewController extends BaseController {
     };
 
     const options = this.Service.getOptions(req.query, customOptions);
-    const data = await this.Service.get(id, req.query, options);
+
+    let data;
+
+    if (id) {
+      data = await this.Service.Model.findDoc({ id }, options);
+    } else {
+      data = await this.Service.get(id, req.query, options);
+    }
 
     sendResponse(httpStatus.OK, res, data);
   }
