@@ -6,10 +6,13 @@ import { authentication } from "#middlewares/authentication";
 const router = express.Router();
 
 // router.use(authentication);
+
 router
   .route("/get-messages")
   .get(
-    asyncHandler(MessageController.getMessagesBetweenUsers.bind(MessageController))
+    asyncHandler(
+      MessageController.getMessagesBetweenUsers.bind(MessageController),
+    ),
   );
 
 router
