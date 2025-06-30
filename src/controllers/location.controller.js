@@ -66,6 +66,11 @@ class LocationController extends BaseController {
       }
     }
 
+    data[0] = data[0].toJSON();
+
+    data[0].averageRating = data[0].averageRating?.slice(0, 4) ?? "0";
+    data[0].recommendedCount = data[0].recommendedCount?.slice(0, 1) ?? "0";
+
     sendResponse(
       httpStatus.OK,
       res,
