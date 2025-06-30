@@ -9,9 +9,9 @@ class UserService extends BaseService {
   static Model = User;
 
   static async login(userData) {
-    const { email, password } = userData;
+    const { email: username, password } = userData;
 
-    let user = await this.getDoc({ email });
+    let user = await this.getDoc({ username });
     const verification = await compare(password, user.password);
 
     if (!verification) {
@@ -27,6 +27,7 @@ class UserService extends BaseService {
       email: user.email,
       name: user.name,
     };
+
     const token = createToken(payload);
 
     user = user.toJSON();
