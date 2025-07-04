@@ -34,6 +34,10 @@ Message.initialize({
     allowNull: false,
     defaultValue: false,
   },
+  file: {
+    type: DataTypes.TEXT,
+    file: true,
+  },
 });
 
 Message.belongsTo(User, { as: "Sender", foreignKey: "senderId" });
