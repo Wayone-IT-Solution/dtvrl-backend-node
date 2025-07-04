@@ -253,8 +253,8 @@ class BaseModel extends Model {
     delete options.allowNull;
 
     const doc = await this.findOne({
-      where: filters,
       ...options,
+      where: filters,
     });
 
     if (doc || allowNull) {
