@@ -171,34 +171,54 @@ class ItineraryController extends BaseController {
   }
 
   static async getSharedItinerary(req, res, next) {
-    const userId = session.get("userId");
-
-    const { isPublic = true } = req.query;
-    // NOTE: Add likecount and commentcount
     const customOptions = {
       include: [
         {
-          model: ItineraryShareList,
+          model: ItineraryLike,
+          attributes: [],
+          duplicating: false,
           required: false,
-          where: { userId },
+        },
+        {
+          model: User,
+          attributes: ["id", "name", "username", "profile", "email"],
+        },
+        {
+          model: ItineraryComment,
+          attributes: [],
+          duplicating: false,
+          required: false,
         },
       ],
-      where: {
-        deletedAt: null,
-        [Op.or]: [
-          { public: isPublic },
-          {
-            id: {
-              [Op.in]: Sequelize.literal(
-                `(SELECT "itineraryId" FROM "ItineraryShareLists" WHERE "userId" = ${userId} AND "deletedAt" IS NULL)`,
-              ),
-            },
-          },
+      attributes: [
+        "id",
+        "title",
+        "amount",
+        "startDate",
+        "endDate",
+        "public",
+        "description",
+        "peopleCount",
+        "createdAt",
+        [
+          Sequelize.fn(
+            "COUNT",
+            Sequelize.fn("DISTINCT", Sequelize.col("ItineraryLikes.id")),
+          ),
+          "likeCount",
         ],
-      },
+        [
+          Sequelize.fn(
+            "COUNT",
+            Sequelize.fn("DISTINCT", Sequelize.col("ItineraryComments.id")),
+          ),
+          "commentCount",
+        ],
+      ],
+      group: ["Itinerary.id", "User.id"],
     };
 
-    const options = this.Service.getOptions({}, customOptions);
+    const options = this.Service.getOptions({ public: true }, customOptions);
     const data = await this.Service.get(null, req.query, options);
     sendResponse(httpStatus.OK, res, data);
   }
