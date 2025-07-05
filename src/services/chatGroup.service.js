@@ -6,7 +6,7 @@ class ChatGroupService extends BaseService {
   static Model = ChatGroup;
 
   static async create(data) {
-    const chatGroup = await this.Service.create(data);
+    const chatGroup = await super.create(data);
     const groupMember = await ChatGroupMemberService.create({
       groupId: chatGroup.id,
       userId: data.adminId,

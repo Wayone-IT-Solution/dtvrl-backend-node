@@ -64,6 +64,20 @@ class UserFollowController extends BaseController {
 
     const options = this.Service.getOptions(req.query, customOptions);
     const data = await this.Service.get(id, req.query, options);
+    if (req.query.pagination === false || req.query.pagination === "false") {
+      data.forEach((ele, index) => {
+        data[index] = ele.toJSON();
+        data[index].user = ele.otherUser;
+        delete result[index].otherUser;
+      });
+    } else {
+      const { result } = data;
+      result.forEach((ele, index) => {
+        result[index] = ele.toJSON();
+        result[index].user = ele.otherUser;
+        delete result[index].otherUser;
+      });
+    }
     sendResponse(httpStatus.OK, res, data);
   }
 }

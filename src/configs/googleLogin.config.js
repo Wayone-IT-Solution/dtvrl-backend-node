@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import env from "#configs/env";
 import { Op } from "sequelize";
 import User from "#models/user";
+import { fileTypeFromBuffer } from "file-type";
 import { hash } from "bcryptjs";
 import { email } from "envalid";
 import { v4 as uuidv4 } from "uuid";
@@ -9,6 +10,7 @@ import httpStatus from "http-status";
 import AppError from "#utils/appError";
 import { sendResponse } from "#utils/response";
 import { OAuth2Client } from "google-auth-library";
+import { session } from "#middlewares/requestSession";
 
 const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
@@ -56,6 +58,33 @@ export const googleMobileAuth = async (req, res, next) => {
   if (!user) {
     const dummyPassword = await hash(uuidv4(), 10);
 
+    if (payload.picture) {
+      async function fetchImageAsMulterObject(imageUrl, fieldname = "file") {
+        const response = await axios.get(imageUrl, {
+          responseType: "arraybuffer",
+        });
+        const buffer = Buffer.from(response.data);
+
+        const type = await fileTypeFromBuffer(buffer);
+        if (!type) throw new Error("Unable to determine file type");
+
+        const originalname = `profile.${type.ext}`;
+
+        return {
+          fieldname,
+          originalname,
+          mimetype: type.mime,
+          buffer,
+        };
+      }
+
+      const fileArr = [
+        await fetchImageAsMulterObject(payload.picture, "profile"),
+      ];
+
+      session.set("files", fileArr);
+    }
+
     user = await User.create({
       googleId: payload.sub,
       name: payload.name,
@@ -68,7 +97,6 @@ export const googleMobileAuth = async (req, res, next) => {
       referredBy: null,
       isPrivate: false,
       refreshToken: uuidv4(),
-      profile: payload.picture || "user-profile.png",
       dob: new Date("2000-01-01"),
       isGoogleUser: true,
       isProfileComplete: false,

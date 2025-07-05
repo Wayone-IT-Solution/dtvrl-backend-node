@@ -9,7 +9,7 @@ class Message extends BaseModel {}
 Message.initialize({
   message: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,
   },
   senderId: {
     type: DataTypes.INTEGER,

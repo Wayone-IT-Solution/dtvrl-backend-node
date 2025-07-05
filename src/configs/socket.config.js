@@ -1,18 +1,11 @@
-import path from "path";
 import User from "#models/user";
 import { Server } from "socket.io";
-import { fileURLToPath } from "url";
 import Message from "#models/message";
-import UserService from "#services/user";
 import { server } from "#configs/server";
 import sequelize from "#configs/database";
-import ChatGroup from "#models/chatGroup";
 import { session } from "#middlewares/requestSession";
 import ChatGroupMember from "#models/chatGroupMember";
 import ChatGroupMessage from "#models/chatGroupMessage";
-// import saveFile from "#utils/upload"; // optional
-
-// ========== In-memory tracking ==========
 const userList = {}; // { userId: Set(socketId) }
 const socketList = {}; // { socketId: userId }
 
@@ -67,14 +60,15 @@ io.on("connection", (socket) => {
   });
 
   // 1:1 private message
-  socket.on("message", async (payload, file = null) => {
+  socket.on("message", async (payload) => {
     session.run(async () => {
       let transaction;
       try {
         transaction = await sequelize.transaction();
         session.set("transaction", transaction);
 
-        const { senderId, receiverId, text, uniqueId } = payload;
+        const { senderId, receiverId, text, uniqueId, file, mime, extension } =
+          payload;
         if (!senderId || !receiverId || (!text && !file)) {
           return io.to(socket.id).emit("message", {
             status: false,
@@ -82,11 +76,19 @@ io.on("connection", (socket) => {
           });
         }
 
-        let filePath = null;
         if (file) {
-          filePath = await saveFile(file);
-          filePath = filePath.replace("src/", "/");
+          const fileArr = [
+            {
+              fieldname: "file",
+              buffer: file,
+              mimetype: mime,
+              originalname: "file." + extension,
+            },
+          ];
+
+          session.set("files", fileArr);
         }
+
         const user = await User.findDocById(senderId);
         const safeUser = {
           id: user.id,
@@ -107,7 +109,6 @@ io.on("connection", (socket) => {
           senderId,
           receiverId,
           message: text || null,
-          file: filePath,
         });
         const receiverSockets = userList[receiverId];
         const senderSockets = userList[senderId];
@@ -118,13 +119,13 @@ io.on("connection", (socket) => {
             user: safeUser,
           }),
         );
-        senderSockets?.forEach((id) =>
+        senderSockets?.forEach((id) => {
           io.to(id).emit("message-sent", {
             uniqueId,
             message,
             user: safeUser,
-          }),
-        );
+          });
+        });
 
         await transaction.commit();
       } catch (err) {
@@ -206,7 +207,9 @@ io.on("connection", (socket) => {
 
         // Optionally emit to sender for confirmation
         const senderSockets = userList[senderId];
+        console.log(senderSockets);
         senderSockets?.forEach((id) => {
+          console.log(id, true);
           {
             io.to(id).emit("groupMessage-sent", {
               uniqueId,
