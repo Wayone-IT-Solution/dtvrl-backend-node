@@ -9,6 +9,7 @@ import { Op, Sequelize } from "sequelize";
 import ItineraryLike from "#models/itineraryLike";
 import ItineraryComment from "#models/itineraryComment";
 import User from "#models/user";
+import ItineraryRecommend from "#models/itineraryRecommend";
 
 class ItineraryController extends BaseController {
   static Service = ItineraryService;
@@ -189,6 +190,23 @@ class ItineraryController extends BaseController {
           duplicating: false,
           required: false,
         },
+        {
+          model: ItineraryRecommend,
+          attributes: [],
+          duplicating: false,
+          required: false,
+          as: "ItineraryRecommends",
+        },
+        {
+          model: ItineraryRecommend,
+          as: "UserRecommendation", // alias
+          attributes: ["id"],
+          duplicating: false,
+          required: false,
+          where: {
+            userId: session.get("userId"), // current logged in user
+          },
+        },
       ],
       attributes: [
         "id",
@@ -214,8 +232,21 @@ class ItineraryController extends BaseController {
           ),
           "commentCount",
         ],
+        [
+          Sequelize.fn(
+            "COUNT",
+            Sequelize.fn("DISTINCT", Sequelize.col("ItineraryRecommends.id")),
+          ),
+          "recommendedCount",
+        ],
+        [
+          Sequelize.literal(
+            `CASE WHEN "UserRecommendation"."id" IS NOT NULL THEN true ELSE false END`,
+          ),
+          "isRecommended",
+        ],
       ],
-      group: ["Itinerary.id", "User.id"],
+      group: ["Itinerary.id", "User.id", "UserRecommendation.id"],
     };
 
     const options = this.Service.getOptions({ public: true }, customOptions);
