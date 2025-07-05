@@ -8,6 +8,8 @@ import ChatGroupMember from "#models/chatGroupMember";
 import ChatGroupMessage from "#models/chatGroupMessage";
 const userList = {}; // { userId: Set(socketId) }
 const socketList = {}; // { socketId: userId }
+const groupUserList = {};
+const groupSocketList = {};
 
 // ========== Socket.IO setup ==========
 const io = new Server(server, {
@@ -141,14 +143,16 @@ io.on("connection", (socket) => {
   });
 
   // Group message via room
-  socket.on("groupMessage", async (payload, file = null) => {
+  socket.on("groupMessage", async (payload) => {
     session.run(async () => {
+      console.log(true);
       let transaction;
       try {
         transaction = await sequelize.transaction();
         session.set("transaction", transaction);
 
-        const { senderId, groupId, text, uniqueId } = payload;
+        const { senderId, groupId, text, uniqueId, file, mime, extension } =
+          payload;
         if (!senderId || !groupId || (!text && !file)) {
           return io.to(socket.id).emit("groupMessage", {
             status: false,
@@ -169,17 +173,23 @@ io.on("connection", (socket) => {
           });
         }
 
-        let filePath = null;
         if (file) {
-          filePath = await saveFile(file);
-          filePath = filePath.replace("src/", "/");
+          const fileArr = [
+            {
+              fieldname: "file",
+              buffer: file,
+              mimetype: mime,
+              originalname: "file." + extension,
+            },
+          ];
+
+          session.set("files", fileArr);
         }
 
         const message = await ChatGroupMessage.create({
           senderId,
           groupId,
           text: text || null,
-          file: filePath,
         });
 
         const user = await User.findDocById(senderId);
@@ -207,9 +217,7 @@ io.on("connection", (socket) => {
 
         // Optionally emit to sender for confirmation
         const senderSockets = userList[senderId];
-        console.log(senderSockets);
         senderSockets?.forEach((id) => {
-          console.log(id, true);
           {
             io.to(id).emit("groupMessage-sent", {
               uniqueId,

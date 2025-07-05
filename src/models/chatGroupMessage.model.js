@@ -8,7 +8,7 @@ class ChatGroupMessage extends BaseModel {}
 ChatGroupMessage.initialize({
   text: {
     type: DataTypes.TEXT,
-    allowNull: false,
+    allowNull: true,
     //WARN: Unique constraint missing
   },
   groupId: {
@@ -28,6 +28,11 @@ ChatGroupMessage.initialize({
       key: User.primaryKeyAttribute,
     },
     onDelete: "CASCADE",
+  },
+  file: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    file: true,
   },
 });
 
