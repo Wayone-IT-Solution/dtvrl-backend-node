@@ -13,7 +13,7 @@ class LocationReviewLikeService extends BaseService {
       include: [
         {
           model: UserService.Model,
-          attributes: ["id"],
+          attributes: ["id", "firebaseToken"],
         },
       ],
     });

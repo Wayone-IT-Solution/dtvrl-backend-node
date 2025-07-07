@@ -3,21 +3,25 @@ import admin from "#configs/firebase";
 async function sendNewPostNotification(fcmTokens, tokenData) {
   const { notification, data = {} } = tokenData;
 
-  const message = {
-    tokens: fcmTokens, // array of FCM tokens
-    notification,
-    data: {
-      click_action: "FLUTTER_NOTIFICATION_CLICK",
-      ...data,
-    },
-  };
+  const results = await Promise.allSettled(
+    fcmTokens.map((token) => {
+      return admin.messaging().send({
+        token,
+        notification,
+        data: {
+          click_action: "FLUTTER_NOTIFICATION_CLICK",
+          ...data,
+        },
+      });
+    }),
+  );
 
-  const response = await admin.messaging().sendMulticast(message);
+  const successCount = results.filter((r) => r.status === "fulfilled").length;
+  const failureCount = results.filter((r) => r.status === "rejected").length;
 
-  console.log("Success count:", response.successCount);
-  console.log("Failure count:", response.failureCount);
+  console.log("Success:", successCount, "Failures:", failureCount);
 
-  return response;
+  return { successCount, failureCount, results };
 }
 
 export default sendNewPostNotification;
