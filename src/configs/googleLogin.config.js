@@ -5,7 +5,7 @@ import User from "#models/user";
 import { fileTypeFromBuffer } from "file-type";
 import { hash } from "bcryptjs";
 import { email } from "envalid";
-import axios from "axios"
+import axios from "axios";
 import { v4 as uuidv4 } from "uuid";
 import httpStatus from "http-status";
 import AppError from "#utils/appError";

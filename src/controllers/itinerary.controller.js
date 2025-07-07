@@ -249,7 +249,9 @@ class ItineraryController extends BaseController {
       group: ["Itinerary.id", "User.id", "UserRecommendation.id"],
     };
 
-    const options = this.Service.getOptions({ public: true }, customOptions);
+    req.query.public = true;
+
+    const options = this.Service.getOptions(req.query, customOptions);
     const data = await this.Service.get(null, req.query, options);
     sendResponse(httpStatus.OK, res, data);
   }

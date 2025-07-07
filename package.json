@@ -31,6 +31,7 @@
     "envalid": "^8.0.0",
     "express": "^4.21.2",
     "file-type": "^21.0.0",
+    "firebase-admin": "^13.4.0",
     "google-auth-library": "^10.1.0",
     "http-status": "^2.1.0",
     "joi": "^17.13.3",

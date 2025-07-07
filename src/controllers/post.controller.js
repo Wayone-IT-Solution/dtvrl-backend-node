@@ -4,10 +4,13 @@ import { Sequelize } from "sequelize";
 import PostView from "#models/postView";
 import PostLike from "#models/postLike";
 import PostService from "#services/post";
+import UserService from "#services/user";
 import PostComment from "#models/postComment";
 import BaseController from "#controllers/base";
 import { sendResponse } from "#utils/response";
+import UserFollowService from "#services/userFollow";
 import { session } from "#middlewares/requestSession";
+import sendNewPostNotification from "#utils/notification";
 
 class PostController extends BaseController {
   static Service = PostService;

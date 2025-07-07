@@ -145,7 +145,6 @@ io.on("connection", (socket) => {
   // Group message via room
   socket.on("groupMessage", async (payload) => {
     session.run(async () => {
-      console.log(true);
       let transaction;
       try {
         transaction = await sequelize.transaction();

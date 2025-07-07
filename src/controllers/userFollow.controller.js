@@ -8,6 +8,12 @@ import { session } from "#middlewares/requestSession";
 class UserFollowController extends BaseController {
   static Service = UserFollowService;
 
+  static async get(req, res, next) {
+    const userId = session.get("userId");
+    req.query.userId = userId;
+    return await super.get(req, res, next);
+  }
+
   static async create(req, res, next) {
     req.body.userId = session.get("userId");
     return await super.create(req, res, next);
