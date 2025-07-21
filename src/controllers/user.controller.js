@@ -25,7 +25,7 @@ class UserController extends BaseController {
   }
 
   static async create(req, res, next) {
-    const user = await this.Service.create(req.body);
+    let user = await this.Service.create(req.body);
 
     const payload = {
       userId: user.id,
