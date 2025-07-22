@@ -4,6 +4,7 @@ import httpStatus from "http-status";
 import AppError from "#utils/appError";
 import UserService from "#services/user";
 import { createToken } from "#utils/jwt";
+import { compare, hash } from "bcryptjs";
 import Itinerary from "#models/itinerary";
 import UserFollow from "#models/userFollow";
 import BaseController from "#controllers/base";
@@ -11,6 +12,7 @@ import { sendResponse } from "#utils/response";
 import { sendEmail } from "#configs/nodeMailer";
 import LocationReview from "#models/locationReview";
 import { session } from "#middlewares/requestSession";
+import { generateOTPEmail } from "#templates/emailTemplate";
 
 class UserController extends BaseController {
   static Service = UserService;
@@ -33,12 +35,17 @@ class UserController extends BaseController {
       email: user.email,
       name: user.name,
       emailVerified: false,
-      otp: Math.floor(100000 + Math.random() * 900000),
     };
+
+    const otp = Math.floor(100000 + Math.random() * 900000);
+    payload.otp = await hash(String(otp), 10);
 
     const token = createToken(payload);
 
     user = user.toJSON();
+
+    const mailOptions = generateOTPEmail({ otp, from: env.STMP_EMAIL }, user);
+    await sendEmail(mailOptions);
 
     delete user.password;
     user.token = token;
@@ -49,7 +56,10 @@ class UserController extends BaseController {
     const { otp: providedOTP } = req.body;
     const payload = session.get("payload");
     const { otp } = payload;
-    if (otp !== Number(providedOTP)) {
+
+    const verification = await compare(String(providedOTP), otp);
+
+    if (verification) {
       throw new AppError({
         status: false,
         message: "Incorrect OTP",

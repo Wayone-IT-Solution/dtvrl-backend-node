@@ -1,5 +1,5 @@
 import { configDotenv } from "dotenv";
-import { cleanEnv, str, num } from "envalid";
+import { cleanEnv, str, num, bool } from "envalid";
 
 configDotenv();
 
@@ -21,6 +21,13 @@ const env = cleanEnv(process.env, {
   GOOGLE_CLIENT_ID: str(),
   GOOGLE_CLIENT_SECRET: str(),
   GOOGLE_MOBILE_CLIENT_ID: str(),
+
+  // SMTP Email Configuration
+  SMTP_HOST: str(),
+  SMTP_PORT: num({ default: 587 }),
+  SMTP_SECURE: bool({ default: false }),
+  SMTP_USER: str(),
+  SMTP_PASS: str(),
 });
 
 export default env;

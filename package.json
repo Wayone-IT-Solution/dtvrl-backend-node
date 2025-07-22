@@ -18,7 +18,8 @@
     "#services/*": "./src/services/*.service.js",
     "#configs/*": "./src/configs/*.config.js",
     "#models/*": "./src/models/*.model.js",
-    "#middlewares/*": "./src/middlewares/*.middleware.js"
+    "#middlewares/*": "./src/middlewares/*.middleware.js",
+    "#templates/*": "./src/templates/*.template.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.800.0",
