@@ -45,7 +45,7 @@ class UserController extends BaseController {
 
     user = user.toJSON();
 
-    const mailOptions = generateOTPEmail({ otp, from: env.STMP_EMAIL }, user);
+    const mailOptions = generateOTPEmail({ otp, from: env.STMP_USER }, user);
     await sendEmail(mailOptions);
 
     delete user.password;
