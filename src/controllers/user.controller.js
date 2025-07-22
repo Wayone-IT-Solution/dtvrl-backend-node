@@ -1,3 +1,4 @@
+import env from "#configs/env";
 import { literal } from "sequelize";
 import Memory from "#models/memory";
 import httpStatus from "http-status";
