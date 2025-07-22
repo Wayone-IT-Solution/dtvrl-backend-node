@@ -43,6 +43,7 @@ class AdminService extends BaseService {
     const payload = {
       userId: user.id,
       email: user.email,
+      isAdmin: true,
     };
 
     const token = createToken(payload);

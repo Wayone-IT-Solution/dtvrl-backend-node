@@ -9,7 +9,7 @@ import UserController from "#controllers/user";
 import asyncHandler from "#utils/asyncHandler";
 import { session } from "#middlewares/requestSession";
 import { googleMobileAuth } from "#configs/googleLogin";
-import { authentication } from "#middlewares/authentication";
+import { authentication, signupCheck } from "#middlewares/authentication";
 
 const router = express.Router();
 
@@ -51,7 +51,17 @@ router
   .route("/:id?")
   .post(asyncHandler(UserController.create.bind(UserController)));
 
+router
+  .route("/verify")
+  .post(
+    signupCheck,
+    asyncHandler(UserController.verifyMail.bind(UserController)),
+  );
+
 router.use(authentication);
+
+router.route("/ping");
+// .post(asyncHandler(UserController.pingSession.bind(UserController)));
 
 router
   .route("/get-current-user")

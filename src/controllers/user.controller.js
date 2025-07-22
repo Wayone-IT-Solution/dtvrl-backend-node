@@ -1,15 +1,16 @@
+import { literal } from "sequelize";
+import Memory from "#models/memory";
 import httpStatus from "http-status";
+import AppError from "#utils/appError";
 import UserService from "#services/user";
+import { createToken } from "#utils/jwt";
+import Itinerary from "#models/itinerary";
 import UserFollow from "#models/userFollow";
 import BaseController from "#controllers/base";
 import { sendResponse } from "#utils/response";
-import { session } from "#middlewares/requestSession";
-import AppError from "#utils/appError";
-import { literal } from "sequelize";
-import { createToken } from "#utils/jwt";
-import Memory from "#models/memory";
+import { sendEmail } from "#configs/nodeMailer";
 import LocationReview from "#models/locationReview";
-import Itinerary from "#models/itinerary";
+import { session } from "#middlewares/requestSession";
 
 class UserController extends BaseController {
   static Service = UserService;
@@ -31,7 +32,10 @@ class UserController extends BaseController {
       userId: user.id,
       email: user.email,
       name: user.name,
+      emailVerified: false,
+      otp: Math.floor(100000 + Math.random() * 900000),
     };
+
     const token = createToken(payload);
 
     user = user.toJSON();
@@ -39,6 +43,39 @@ class UserController extends BaseController {
     delete user.password;
     user.token = token;
     sendResponse(httpStatus.CREATED, res, user, "Signed up successfully");
+  }
+
+  static async verifyMail(req, res, next) {
+    const { otp: providedOTP } = req.body;
+    const payload = session.get("payload");
+    const { otp } = payload;
+    if (otp !== Number(providedOTP)) {
+      throw new AppError({
+        status: false,
+        message: "Incorrect OTP",
+        httpStatus: httpStatus.UNAUTHORIZED,
+      });
+    }
+
+    let user = await this.Service.getDocById(payload.userId);
+    user.emailVerified = true;
+    await user.save();
+
+    const newPayload = {
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      emailVerified: true,
+      otp: Math.floor(100000 + Math.random() * 900000),
+    };
+
+    user = user.toJSON();
+
+    delete user.password;
+    user.token = token;
+
+    const token = createToken(newPayload);
+    sendResponse(httpStatus.OK, res, user);
   }
 
   static async login(req, res, next) {

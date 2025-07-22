@@ -26,7 +26,10 @@ class UserService extends BaseService {
       userId: user.id,
       email: user.email,
       name: user.name,
+      emailVerified: true,
     };
+
+    if (!user.emailVerified) payload.emailVerified = false;
 
     const token = createToken(payload);
 

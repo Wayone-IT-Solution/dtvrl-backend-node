@@ -91,6 +91,10 @@ User.initialize(
     firebaseToken: {
       type: DataTypes.STRING,
     },
+    emailVerified: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
   },
   {
     hooks: {
