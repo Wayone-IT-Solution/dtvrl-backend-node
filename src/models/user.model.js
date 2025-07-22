@@ -28,7 +28,7 @@ User.initialize(
     email: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true,
+      unique: false,
       validate: {
         isEmail: true,
       },
@@ -41,7 +41,7 @@ User.initialize(
     phone: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true,
+      unique: false,
       validate: {
         is: /^[0-9+\- ]{7,15}$/, // basic phone validation
       },
