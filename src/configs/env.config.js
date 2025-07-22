@@ -25,7 +25,7 @@ const env = cleanEnv(process.env, {
   // SMTP Email Configuration
   SMTP_HOST: str(),
   SMTP_PORT: num({ default: 587 }),
-  SMTP_SECURE: bool({ default: false }),
+  SMTP_SECURE: bool({ default: true }),
   SMTP_USER: str(),
   SMTP_PASS: str(),
 });

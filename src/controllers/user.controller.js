@@ -45,8 +45,18 @@ class UserController extends BaseController {
 
     user = user.toJSON();
 
-    const mailOptions = generateOTPEmail({ otp, from: env.STMP_USER }, user);
-    await sendEmail(mailOptions);
+    console.log(env);
+
+    const mailOptions = generateOTPEmail({ otp, from: env.SMTP_USER }, user);
+    const { success } = await sendEmail(mailOptions);
+
+    if (!success) {
+      throw new AppError({
+        status: false,
+        message: "Mail sent successfully",
+        httpStatus: httpStatus.BAD_REQUEST,
+      });
+    }
 
     delete user.password;
     user.token = token;
