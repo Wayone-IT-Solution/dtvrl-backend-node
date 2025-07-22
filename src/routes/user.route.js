@@ -60,8 +60,9 @@ router
 
 router.use(authentication);
 
-router.route("/ping");
-// .post(asyncHandler(UserController.pingSession.bind(UserController)));
+router
+  .route("/ping")
+  .post(asyncHandler(UserController.pingSession.bind(UserController)));
 
 router
   .route("/get-current-user")

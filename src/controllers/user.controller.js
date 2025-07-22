@@ -83,6 +83,11 @@ class UserController extends BaseController {
     sendResponse(httpStatus.OK, res, tokenData, "Logged in successfully");
   }
 
+  static async pingSession(req, res, next) {
+    console.log("PING recieved from user", session.get("payload"));
+    sendResponse(httpStatus.OK, res, null);
+  }
+
   static async getCurrentUser(req, res, next) {
     const userId = req.params.id ?? session.get("userId");
     let user = await this.Service.Model.findOne({
