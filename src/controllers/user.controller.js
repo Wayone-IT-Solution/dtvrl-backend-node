@@ -29,6 +29,7 @@ class UserController extends BaseController {
   }
 
   static async create(req, res, next) {
+    req.body.emailVerified = false;
     let user = await this.Service.create(req.body);
 
     const payload = {
@@ -44,8 +45,6 @@ class UserController extends BaseController {
     const token = createToken(payload);
 
     user = user.toJSON();
-
-    console.log(env);
 
     const mailOptions = generateOTPEmail({ otp, from: env.SMTP_USER }, user);
     const { success } = await sendEmail(mailOptions);
@@ -70,7 +69,7 @@ class UserController extends BaseController {
 
     const verification = await compare(String(providedOTP), otp);
 
-    if (verification) {
+    if (!verification) {
       throw new AppError({
         status: false,
         message: "Incorrect OTP",
@@ -93,9 +92,9 @@ class UserController extends BaseController {
     user = user.toJSON();
 
     delete user.password;
-    user.token = token;
 
     const token = createToken(newPayload);
+    user.token = token;
     sendResponse(httpStatus.OK, res, user);
   }
 

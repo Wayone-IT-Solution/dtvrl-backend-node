@@ -29,7 +29,16 @@ class UserService extends BaseService {
       emailVerified: true,
     };
 
-    if (!user.emailVerified) payload.emailVerified = false;
+    if (!user.emailVerified) {
+      throw new AppError({
+        status: false,
+        message: "Please verify your email",
+        httpStatus: httpStatus.UNAUTHORIZED,
+        data: {
+          emailVerified: false,
+        },
+      });
+    }
 
     const token = createToken(payload);
 

@@ -48,7 +48,7 @@ router
   .post(asyncHandler(UserController.login.bind(UserController)));
 
 router
-  .route("/:id?")
+  .route("/")
   .post(asyncHandler(UserController.create.bind(UserController)));
 
 router

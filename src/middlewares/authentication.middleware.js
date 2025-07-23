@@ -28,13 +28,16 @@ export async function authentication(req, res, next) {
       return next();
     }
 
-    // if (!payload.emailVerified) {
-    //   throw new AppError({
-    //     status: false,
-    //     message: "Please verify your email to login",
-    //     httpStatus: httpStatus.UNAUTHORIZED,
-    //   });
-    // }
+    if (!payload.emailVerified) {
+      throw new AppError({
+        status: false,
+        message: "Please verify your email to login",
+        data: {
+          emailVerified: false,
+        },
+        httpStatus: httpStatus.UNAUTHORIZED,
+      });
+    }
 
     next();
   } catch (err) {

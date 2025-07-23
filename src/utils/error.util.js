@@ -12,8 +12,7 @@ export const globalErrorHandler = async (error, req, res, next) => {
   const transaction = await session.get("transaction");
   if (transaction) await transaction.rollback();
 
-  console.error(error); // Always log the full error for internal diagnostics
-
+  console.log(error);
   // Sequelize Validation Error
   if (error instanceof ValidationError) {
     const messages = error.errors
@@ -98,6 +97,7 @@ export const globalErrorHandler = async (error, req, res, next) => {
     return res.status(error.httpStatus).json({
       status: false,
       message: error.message,
+      ...(error.data ? { data: error.data } : {}),
     });
   }
 
