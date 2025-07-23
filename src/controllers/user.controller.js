@@ -67,11 +67,20 @@ class UserController extends BaseController {
     let user = await this.Service.getDocById(payload.userId);
 
     if (user.emailVerified) {
-      throw new AppError({
-        status: false,
-        message: "Your email is already verified, please re login",
-        httpStatus: httpStatus.BAD_REQUEST,
-      });
+      const newPayload = {
+        userId: user.id,
+        email: user.email,
+        name: user.name,
+        emailVerified: true,
+      };
+
+      user = user.toJSON();
+
+      delete user.password;
+
+      const token = createToken(newPayload);
+      user.token = token;
+      return sendResponse(httpStatus.OK, res, user);
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000);
