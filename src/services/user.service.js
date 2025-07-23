@@ -32,6 +32,12 @@ class UserService extends BaseService {
     };
 
     if (!user.emailVerified) {
+      payload.emailVerified = false;
+
+      const otp = 123456 ?? Math.floor(100000 + Math.random() * 900000);
+      payload.otp = await hash(String(otp), 10);
+      const token = createToken(payload);
+
       const mailOptions = generateOTPEmail({ otp, from: env.SMTP_USER }, user);
       const { success } = await sendEmail(mailOptions);
 
@@ -49,6 +55,7 @@ class UserService extends BaseService {
         httpStatus: httpStatus.UNAUTHORIZED,
         data: {
           emailVerified: false,
+          token,
         },
       });
     }
