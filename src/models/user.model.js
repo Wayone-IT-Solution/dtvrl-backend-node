@@ -21,7 +21,7 @@ User.initialize(
       allowNull: false,
       unique: true,
       validate: {
-        is: /^[a-zA-Z0-9_.-]*$/, // Alphanumeric + underscore/dash/period
+        is: /^[a-zA-Z0-9_.-]+$/, // Alphanumeric, dot, underscore, dash (no spaces)
         len: [3, 50],
       },
     },
