@@ -52,8 +52,8 @@ class UserController extends BaseController {
     if (!success) {
       throw new AppError({
         status: false,
-        message: "Mail sent successfully",
-        httpStatus: httpStatus.BAD_REQUEST,
+        message: "Unable to send verification mail",
+        httpStatus: httpStatus.INTERNAL_SERVER_ERROR,
       });
     }
 

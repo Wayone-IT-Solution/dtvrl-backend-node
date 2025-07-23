@@ -4,6 +4,8 @@ import httpStatus from "http-status";
 import AppError from "#utils/appError";
 import BaseService from "#services/base";
 import { createToken } from "#utils/jwt";
+import { sendEmail } from "#configs/nodeMailer";
+import { generateOTPEmail } from "#templates/emailTemplate";
 
 class UserService extends BaseService {
   static Model = User;
@@ -30,6 +32,17 @@ class UserService extends BaseService {
     };
 
     if (!user.emailVerified) {
+      const mailOptions = generateOTPEmail({ otp, from: env.SMTP_USER }, user);
+      const { success } = await sendEmail(mailOptions);
+
+      if (!success) {
+        throw new AppError({
+          status: false,
+          message: "Unable to send email",
+          httpStatus: httpStatus.INTERNAL_SERVER_ERROR,
+        });
+      }
+
       throw new AppError({
         status: false,
         message: "Please verify your email",
