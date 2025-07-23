@@ -62,6 +62,47 @@ class UserController extends BaseController {
     sendResponse(httpStatus.CREATED, res, user, "Signed up successfully");
   }
 
+  static async resendOtp(req, res, next) {
+    const payload = session.get("payload");
+    let user = await this.Service.getDocById(payload.userId);
+
+    if (user.emailVerified) {
+      throw new AppError({
+        status: false,
+        message: "Your email is already verified, please re login",
+        httpStatus: httpStatus.BAD_REQUEST,
+      });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000);
+
+    const newPayload = {
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      emailVerified: false,
+      otp: await hash(String(otp), 10),
+    };
+
+    user = user.toJSON();
+    delete user.password;
+
+    const mailOptions = generateOTPEmail({ otp, from: env.SMTP_USER }, user);
+    const { success } = await sendEmail(mailOptions);
+
+    if (!success) {
+      throw new AppError({
+        status: false,
+        message: "Unable to send verification mail",
+        httpStatus: httpStatus.INTERNAL_SERVER_ERROR,
+      });
+    }
+
+    const token = createToken(newPayload);
+    user.token = token;
+    sendResponse(httpStatus.OK, res, user);
+  }
+
   static async verifyMail(req, res, next) {
     const { otp: providedOTP } = req.body;
     const payload = session.get("payload");
@@ -86,7 +127,6 @@ class UserController extends BaseController {
       email: user.email,
       name: user.name,
       emailVerified: true,
-      otp: Math.floor(100000 + Math.random() * 900000),
     };
 
     user = user.toJSON();

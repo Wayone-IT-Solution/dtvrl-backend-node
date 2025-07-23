@@ -48,15 +48,22 @@ router
   .post(asyncHandler(UserController.login.bind(UserController)));
 
 router
-  .route("/")
-  .post(asyncHandler(UserController.create.bind(UserController)));
-
-router
   .route("/verify")
   .post(
     signupCheck,
     asyncHandler(UserController.verifyMail.bind(UserController)),
   );
+
+router
+  .route("/resend-otp")
+  .get(
+    signupCheck,
+    asyncHandler(UserController.resendOtp.bind(UserController)),
+  );
+
+router
+  .route("/")
+  .post(asyncHandler(UserController.create.bind(UserController)));
 
 router.use(authentication);
 
