@@ -101,6 +101,7 @@ export const googleMobileAuth = async (req, res, next) => {
       dob: new Date("2000-01-01"),
       isGoogleUser: true,
       isProfileComplete: false,
+      emailVerified: true,
     });
   }
 
