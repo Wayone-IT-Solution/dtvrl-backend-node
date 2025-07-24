@@ -1,5 +1,7 @@
 import UserService from "#services/user";
 import BaseService from "#services/base";
+import NotificationService from "#services/notification";
+import sendNewPostNotification from "#utils/notification";
 import LocationReviewLike from "#models/locationReviewLike";
 import LocationReviewService from "#services/locationReview";
 
@@ -13,7 +15,7 @@ class LocationReviewLikeService extends BaseService {
       include: [
         {
           model: UserService.Model,
-          attributes: ["id", "firebaseToken"],
+          attributes: ["id", "firebaseToken", "name"], // Added name for notification
         },
       ],
     });
@@ -27,28 +29,62 @@ class LocationReviewLikeService extends BaseService {
       reviewerData,
     ]);
 
+    // Firebase notification setup
     const notification = {
       title: `New like on your review`,
-      body: `${reviewer.name} just liked your review`,
+      body: `${reviewer.username} just liked your review`,
     };
 
     const tokenData = {
       notification,
       data: {
-        type: "new_like",
+        type: "REVIEW_LIKE",
+        id: String(locationReviewId),
       },
     };
 
     const firebaseToken = review.User.firebaseToken;
 
+    // Only notify if someone else liked the review (not self-like)
     if (Number(userId) !== review.userId) {
-      sendNewPostNotification([firebaseToken], tokenData)
-        .then((ele) => {
-          console.log(ele);
-        })
-        .catch((e) => {
-          console.log(e);
-        });
+      // Create database notification record
+      const notificationData = {
+        actorId: userId,
+        recipientId: review.userId,
+        type: "REVIEW_LIKE",
+        status: "UNREAD",
+        title: `${reviewer.username} liked your review`,
+        message: review.content
+          ? `"${review.content.slice(0, 50)}${review.content.length > 50 ? "..." : ""}}"`
+          : null,
+        entityId: locationReviewId,
+        metadata: {
+          id: locationReviewId,
+        },
+        scheduledFor: null,
+        readAt: null,
+        expiresAt: null,
+      };
+
+      // Create notification in database and send Firebase notification
+      const promises = [NotificationService.Model.create(notificationData)];
+
+      // Only send Firebase notification if user has a token
+      if (firebaseToken) {
+        promises.push(
+          sendNewPostNotification([firebaseToken], tokenData)
+            .then((result) => {
+              console.log("Firebase notification sent:", result);
+              return result;
+            })
+            .catch((error) => {
+              console.error("Firebase notification failed:", error);
+              throw error;
+            }),
+        );
+      }
+
+      await Promise.allSettled(promises);
     }
 
     return reviewLike;

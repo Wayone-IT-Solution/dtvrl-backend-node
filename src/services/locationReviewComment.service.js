@@ -13,7 +13,7 @@ class LocationReviewCommentService extends BaseService {
       include: [
         {
           model: UserService.Model,
-          attributes: ["id", "firebaseToken"],
+          attributes: ["id", "firebaseToken", "name"], // Added name for notification
         },
       ],
     });
@@ -27,33 +27,69 @@ class LocationReviewCommentService extends BaseService {
       reviewerData,
     ]);
 
+    // Firebase notification setup
     const notification = {
       title: `New comment on your review`,
-      body: `${reviewer.name} just commented on your review`,
+      body: `${reviewer.username} just commented on your review`,
     };
 
     const tokenData = {
       notification,
       data: {
-        type: "new_comment",
+        type: "REVIEW_COMMENT",
+        id: String(locationReviewId),
+        userId: String(userId),
+        reviewId: String(locationReviewId),
+        commentId: String(reviewComment.id),
       },
     };
 
     const firebaseToken = review.User.firebaseToken;
 
+    // Only notify if someone else commented on the review (not self-comment)
     if (Number(userId) !== review.userId) {
-      sendNewPostNotification([firebaseToken], tokenData)
-        .then((ele) => {
-          console.log(ele);
-        })
-        .catch((e) => {
-          console.log(e);
-        });
+      // Create database notification record
+      const notificationData = {
+        actorId: userId,
+        recipientId: review.userId,
+        type: "REVIEW_COMMENT",
+        status: "UNREAD",
+        title: `${reviewer.username} commented on your review`,
+        message: reviewComment.content
+          ? `"${reviewComment.content.slice(0, 100)}${reviewComment.content.length > 100 ? "..." : ""}}"`
+          : null,
+        entityId: reviewComment.id,
+        metadata: {
+          id: locationReviewId,
+        },
+        scheduledFor: null,
+        readAt: null,
+        expiresAt: null,
+      };
+
+      // Create notification in database and send Firebase notification
+      const promises = [NotificationService.Model.create(notificationData)];
+
+      // Only send Firebase notification if user has a token
+      if (firebaseToken) {
+        promises.push(
+          sendNewPostNotification([firebaseToken], tokenData)
+            .then((result) => {
+              console.log("Firebase notification sent:", result);
+              return result;
+            })
+            .catch((error) => {
+              console.error("Firebase notification failed:", error);
+              throw error;
+            }),
+        );
+      }
+
+      await Promise.allSettled(promises);
     }
 
     return reviewComment;
   }
-
   static async deleteDoc(id) {
     const doc = await this.Model.findDocById(id);
     await doc.destroy({ force: true });
