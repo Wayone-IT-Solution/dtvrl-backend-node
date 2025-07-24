@@ -62,6 +62,9 @@ class PostLikeService extends BaseService {
         entityId: postId,
         scheduledFor: null,
         readAt: null,
+        metaDate: {
+          id: postId,
+        },
         expiresAt: null,
       };
 
