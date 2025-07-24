@@ -37,14 +37,14 @@ class NotificationController extends BaseController {
   static async readAllNotifications(req, res, next) {
     const payload = session.get("payload");
 
-    const updateAll = await this.Service.Model.update(
+    await this.Service.Model.update(
       {
         status: "READ",
         readAt: new Date(),
       },
       {
         where: {
-          recipientId: userId,
+          recipientId: payload.userId,
           status: "UNREAD",
         },
       },
