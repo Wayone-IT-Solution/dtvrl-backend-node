@@ -52,7 +52,6 @@ class PostService extends BaseService {
       };
 
       notificationPayloads.push(notificationData);
-      console.log(ele.user.id, ele.user.firebaseToken);
       return ele.user.firebaseToken;
     });
 

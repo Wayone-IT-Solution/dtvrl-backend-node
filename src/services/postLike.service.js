@@ -76,7 +76,6 @@ class PostLikeService extends BaseService {
         promises.push(
           sendNewPostNotification([firebaseToken], tokenData)
             .then((result) => {
-              console.log("Firebase notification sent:", result);
               return result;
             })
             .catch((error) => {
