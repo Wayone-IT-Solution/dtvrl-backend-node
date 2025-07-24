@@ -31,7 +31,6 @@ export const uploadFile = async (fileKey, fileBuffer, contentType) => {
     await s3Client.send(command);
     return fileKey;
   } catch (error) {
-    console.error("Error uploading file:", error);
     throw error;
   }
 };
@@ -47,7 +46,6 @@ export const getFile = async (fileKey) => {
     const { Body } = await s3Client.send(command);
     return Body;
   } catch (error) {
-    console.error("Error retrieving file:", error);
     throw error;
   }
 };
@@ -63,7 +61,6 @@ export const deleteFile = async (fileKey) => {
     await s3Client.send(command);
     return fileKey;
   } catch (error) {
-    console.error("Error deleting file:", error);
     throw error;
   }
 };

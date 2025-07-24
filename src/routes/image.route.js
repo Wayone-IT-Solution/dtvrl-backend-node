@@ -42,7 +42,6 @@ async function downloadFile(req, res) {
     // Pipe the stream directly to the response
     Body.pipe(res);
   } catch (error) {
-    console.error("Error sending file:", error);
     res.status(500).json({ error: "Failed to download file." });
   }
 }

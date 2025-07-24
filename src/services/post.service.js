@@ -4,6 +4,7 @@ import BaseService from "#services/base";
 import UserFollowService from "#services/userFollow";
 import { session } from "#middlewares/requestSession";
 import sendNewPostNotification from "#utils/notification";
+import NotificationService from "#services/notification";
 
 class PostService extends BaseService {
   static Model = Post;
@@ -12,24 +13,12 @@ class PostService extends BaseService {
     const userId = session.get("userId");
     const post = await super.create(data);
 
-    const notification = {
-      title: `New Post from ${userId}`,
-      body: "Check out our latest update – you’ll love it!",
-    };
-
-    const tokenData = {
-      notification,
-      data: {
-        type: "new_post",
-      },
-    };
-
     const customOptions = {
       include: [
         {
           model: UserService.Model,
           as: "user",
-          attributes: ["firebaseToken"],
+          attributes: ["firebaseToken", "id"],
         },
       ],
       attributes: ["id", "userId"],
@@ -40,15 +29,46 @@ class PostService extends BaseService {
       customOptions,
     );
 
-    const followers = await UserFollowService.get(
-      null,
-      { otherId: userId },
-      options,
-    );
+    const [followers, user] = await Promise.all([
+      UserFollowService.get(null, { otherId: userId }, options),
+      UserService.getDocById(userId),
+    ]);
+
+    const notificationPayloads = [];
 
     const firebaseTokens = followers.map((ele) => {
+      const notificationData = {
+        actorId: userId,
+        recipientId: ele.user.id,
+        type: "POST_CREATED",
+        status: "UNREAD",
+        title: `New post by ${user.name}`,
+        message: post.caption?.slice(20),
+        entityId: post.id,
+        metadata: null,
+        scheduledFor: null,
+        readAt: null,
+        expiresAt: null,
+      };
+
+      notificationPayloads.push(notificationData);
+      console.log(ele.user.id, ele.user.firebaseToken);
       return ele.user.firebaseToken;
     });
+
+    const notification = {
+      title: `New Post from ${user.username}`,
+      body: "Check out our latest update – you’ll love it!",
+    };
+
+    const tokenData = {
+      notification,
+      data: {
+        type: "POST_CREATED",
+        id: String(post.id),
+        userId: String(userId),
+      },
+    };
 
     sendNewPostNotification(firebaseTokens, tokenData)
       .then((ele) => {
@@ -57,6 +77,10 @@ class PostService extends BaseService {
       .catch((e) => {
         console.log(e);
       });
+
+    await NotificationService.Model.bulkCreate(notificationPayloads, {
+      transaction: session.get("transaction"),
+    });
 
     return post;
   }

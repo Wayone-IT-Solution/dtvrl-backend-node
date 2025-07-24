@@ -17,7 +17,10 @@ async function sendNewPostNotification(fcmTokens, tokenData) {
   );
 
   const successCount = results.filter((r) => r.status === "fulfilled").length;
-  const failureCount = results.filter((r) => r.status === "rejected").length;
+  const failureCount = results.filter((r) => {
+    console.log(r);
+    return r.status === "rejected";
+  }).length;
 
   console.log("Success:", successCount, "Failures:", failureCount);
 

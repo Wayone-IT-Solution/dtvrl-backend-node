@@ -28,6 +28,10 @@ class UserController extends BaseController {
     return this.getCurrentUser(req, res, next);
   }
 
+  static async resetPass(req, res, next) {
+    const { email } = req.body;
+  }
+
   static async create(req, res, next) {
     req.body.emailVerified = false;
     let user = await this.Service.create(req.body);

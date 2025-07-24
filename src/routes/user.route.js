@@ -65,6 +65,10 @@ router
   .route("/")
   .post(asyncHandler(UserController.create.bind(UserController)));
 
+router
+  .route("/reset-pass")
+  .post(asyncHandler(UserController.resetPass.bind(UserController)));
+
 router.use(authentication);
 
 router
