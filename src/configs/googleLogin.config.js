@@ -106,7 +106,12 @@ export const googleMobileAuth = async (req, res, next) => {
   }
 
   const token = jwt.sign(
-    { userId: user.id, email: user.email, name: user.name },
+    {
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      emailVerified: user.emailVerified,
+    },
     env.JWT_SECRET,
     {
       expiresIn: "7d",
