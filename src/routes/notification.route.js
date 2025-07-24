@@ -8,6 +8,16 @@ const router = express.Router();
 router.use(authentication);
 
 router
+  .route("/pending")
+  .get(
+    asyncHandler(
+      NotificationController.getPendingNotification.bind(
+        NotificationController,
+      ),
+    ),
+  );
+
+router
   .route("/:id?")
   .get(asyncHandler(NotificationController.get.bind(NotificationController)))
   .post(
