@@ -18,7 +18,7 @@ router
   );
 
 router
-  .route("/real-all")
+  .route("/read-all")
   .put(
     asyncHandler(
       NotificationController.readAllNotifications.bind(NotificationController),
