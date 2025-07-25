@@ -18,6 +18,14 @@ router
   );
 
 router
+  .route("/real-all")
+  .put(
+    asyncHandler(
+      NotificationController.readAllNotifications.bind(NotificationController),
+    ),
+  );
+
+router
   .route("/:id?")
   .get(asyncHandler(NotificationController.get.bind(NotificationController)))
   .post(

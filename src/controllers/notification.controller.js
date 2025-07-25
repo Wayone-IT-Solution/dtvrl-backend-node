@@ -1,9 +1,9 @@
-import NotificationService from "#services/notification";
-import BaseController from "#controllers/base";
-import { session } from "#middlewares/requestSession";
-import { sendResponse } from "#utils/response";
 import httpStatus from "http-status";
 import MessageService from "#services/message";
+import BaseController from "#controllers/base";
+import { sendResponse } from "#utils/response";
+import { session } from "#middlewares/requestSession";
+import NotificationService from "#services/notification";
 
 class NotificationController extends BaseController {
   static Service = NotificationService;
