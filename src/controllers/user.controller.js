@@ -43,7 +43,7 @@ class UserController extends BaseController {
       emailVerified: false,
     };
 
-    const otp = 123456 ?? Math.floor(100000 + Math.random() * 900000);
+    const otp = Math.floor(100000 + Math.random() * 900000);
     payload.otp = await hash(String(otp), 10);
 
     const token = createToken(payload);
@@ -87,7 +87,7 @@ class UserController extends BaseController {
       return sendResponse(httpStatus.OK, res, user, "Otp sent successfully");
     }
 
-    const otp = 123456 ?? Math.floor(100000 + Math.random() * 900000);
+    const otp = Math.floor(100000 + Math.random() * 900000);
 
     const newPayload = {
       userId: user.id,

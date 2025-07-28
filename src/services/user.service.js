@@ -35,7 +35,7 @@ class UserService extends BaseService {
     if (!user.emailVerified) {
       payload.emailVerified = false;
 
-      const otp = 123456 ?? Math.floor(100000 + Math.random() * 900000);
+      const otp = Math.floor(100000 + Math.random() * 900000);
       payload.otp = await hash(String(otp), 10);
       const token = createToken(payload);
 
