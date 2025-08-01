@@ -92,7 +92,7 @@ class ItineraryController extends BaseController {
         include: [
           {
             model: ItineraryShareList,
-            attributes: ["id", "userId"],
+            attributes: ["id", "userId", "itineraryId"],
           },
           {
             model: ItineraryLike,
@@ -121,6 +121,7 @@ class ItineraryController extends BaseController {
           "description",
           "peopleCount",
           "createdAt",
+          "userId",
           [
             Sequelize.fn("COUNT", Sequelize.col("ItineraryLikes.id")),
             "likeCount",
@@ -135,6 +136,7 @@ class ItineraryController extends BaseController {
           "User.id",
           "User.username",
           "Itinerary.createdAt",
+          "ItineraryShareLists.id",
         ],
       },
     );

@@ -76,6 +76,10 @@ class UserService extends BaseService {
     return await super.update(id, data);
   }
 
+  static async updatePass(id, data) {
+    return await super.update(id, data);
+  }
+
   static async deleteDoc(id) {
     const doc = await this.getDocById(id);
     await doc.destroy({ force: true });
