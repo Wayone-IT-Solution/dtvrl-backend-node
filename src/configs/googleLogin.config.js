@@ -105,6 +105,9 @@ export const googleMobileAuth = async (req, res, next) => {
     });
   }
 
+  user.emailVerified = true;
+  await user.save();
+
   const token = jwt.sign(
     {
       userId: user.id,
