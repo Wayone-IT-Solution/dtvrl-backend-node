@@ -73,7 +73,9 @@ class ItineraryController extends BaseController {
     };
 
     const options = this.Service.getOptions(req.query, customOptions);
-    const data = await this.Service.get(id, req.query, options);
+    const data = id
+      ? await this.Service.getDocById(id, customOptions)
+      : await this.Service.get(id, req.query, options);
 
     sendResponse(httpStatus.OK, res, data, "Itineraries fetched successfully");
   }
