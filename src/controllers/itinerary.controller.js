@@ -43,6 +43,13 @@ class ItineraryController extends BaseController {
           duplicating: false,
           required: false,
         },
+        {
+          model: ItineraryRecommend,
+          attributes: [],
+          duplicating: false,
+          required: false,
+          as: "ItineraryRecommends",
+        },
       ],
       attributes: [
         "id",
