@@ -68,6 +68,13 @@ class ItineraryController extends BaseController {
           ),
           "commentCount",
         ],
+        [
+          Sequelize.fn(
+            "COUNT",
+            Sequelize.fn("DISTINCT", Sequelize.col("ItineraryRecommends.id")),
+          ),
+          "recommendedCount",
+        ],
       ],
       group: ["Itinerary.id", "User.id"],
     };
