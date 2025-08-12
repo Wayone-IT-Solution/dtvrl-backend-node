@@ -50,6 +50,13 @@ class ItineraryController extends BaseController {
           required: false,
           as: "ItineraryRecommends",
         },
+        {
+          model: ItineraryRecommend,
+          attributes: [],
+          duplicating: false,
+          required: false,
+          as: "UserRecommendation",
+        },
       ],
       attributes: [
         "id",
@@ -82,8 +89,14 @@ class ItineraryController extends BaseController {
           ),
           "recommendedCount",
         ],
+        [
+          Sequelize.literal(
+            `CASE WHEN "UserRecommendation"."id" IS NOT NULL THEN true ELSE false END`,
+          ),
+          "isRecommended",
+        ],
       ],
-      group: ["Itinerary.id", "User.id"],
+      group: ["Itinerary.id", "User.id", "UserRecommendation.id"],
     };
 
     const options = this.Service.getOptions(req.query, customOptions);
@@ -125,6 +138,9 @@ class ItineraryController extends BaseController {
             attributes: [],
             duplicating: false,
             required: false,
+            where: {
+              userId: session.get("userId"), // current logged in user
+            },
           },
         ],
         attributes: [
