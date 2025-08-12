@@ -214,6 +214,16 @@ class ItineraryController extends BaseController {
           duplicating: false,
           required: false,
         },
+        ...(req.query.search && req.query.searchIn
+          ? []
+          : [
+              {
+                model: ItineraryShareList,
+                attributes: [],
+                duplicating: false,
+                required: true,
+              },
+            ]),
         {
           model: User,
           attributes: ["id", "name", "username", "profile", "email"],
@@ -283,7 +293,9 @@ class ItineraryController extends BaseController {
       group: ["Itinerary.id", "User.id", "UserRecommendation.id"],
     };
 
-    req.query.public = true;
+    if (req.query.search && req.query.searchIn) {
+      req.query.public = true;
+    } else req.query.userId = session.get("userId");
 
     const options = this.Service.getOptions(req.query, customOptions);
     const data = await this.Service.get(null, req.query, options);
