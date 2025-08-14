@@ -13,6 +13,7 @@ import { sendResponse } from "#utils/response";
 import { sendEmail } from "#configs/nodeMailer";
 import LocationReview from "#models/locationReview";
 import { session } from "#middlewares/requestSession";
+import UserSessionService from "#services/userSession";
 import { generateOTPEmail } from "#templates/emailTemplate";
 
 function generateRandomString(length = 8) {
@@ -269,8 +270,10 @@ class UserController extends BaseController {
   }
 
   static async pingSession(req, res, next) {
-    //TODO: Implement the ping functionality
-    sendResponse(httpStatus.OK, res, null);
+    const payload = session.get("payload");
+    const { userId } = payload;
+    const sessionData = await UserSessionService.managePing(userId);
+    sendResponse(httpStatus.OK, res, sessionData);
   }
 
   static async getCurrentUser(req, res, next) {
