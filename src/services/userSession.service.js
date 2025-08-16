@@ -12,6 +12,8 @@ class UserSessionService extends BaseService {
     const transaction = session.get("transaction");
     const now = new Date();
 
+    console.log(location);
+
     // Get the latest active session for user
     const activeSession = await UserSession.findOne({
       where: { userId, endedAt: null },
@@ -28,14 +30,7 @@ class UserSessionService extends BaseService {
       const lastPing = activeSession.lastPingAt || activeSession.createdAt;
       const secondsSinceLastPing = (now - new Date(lastPing)) / 1000;
 
-      console.log(
-        `User ${userId}: Last ping was ${secondsSinceLastPing.toFixed(
-          2,
-        )} seconds ago`,
-      );
-
       if (secondsSinceLastPing > this.SESSION_TIMEOUT) {
-        console.log(`Ending stale session ${activeSession.id}`);
         await this.endSession(activeSession.id, location);
 
         result = await this.startNewSession(userId, transaction, location);
@@ -68,10 +63,6 @@ class UserSessionService extends BaseService {
     // Store transaction inside instance for later updates
     newSession.set("transaction", transaction);
 
-    console.log(
-      `Started new session ${newSession.id} for user ${userId} at (${location?.lat}, ${location?.lng})`,
-    );
-
     return {
       message: "New session started",
       sessionId: newSession.id,
@@ -93,8 +84,6 @@ class UserSessionService extends BaseService {
     const duration = Math.floor((now - new Date(session.startedAt)) / 1000);
 
     await session.update({ lastPingAt: now, duration }, { transaction });
-
-    console.log(`Updated session ${sessionId}, duration: ${duration}s`);
 
     return {
       message: "Session updated",
@@ -125,10 +114,6 @@ class UserSessionService extends BaseService {
         endLng: location?.lng ?? null,
       },
       { transaction },
-    );
-
-    console.log(
-      `Ended session ${sessionId}, final duration: ${finalDuration}s at (${location?.lat}, ${location?.lng})`,
     );
 
     return {
