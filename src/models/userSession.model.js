@@ -34,6 +34,28 @@ UserSession.initialize({
     type: DataTypes.DATE,
     allowNull: true,
   },
+
+  // --- New fields for location ---
+  startLat: {
+    type: DataTypes.DECIMAL(10, 7), // precise enough for GPS
+    allowNull: true,
+  },
+  startLng: {
+    type: DataTypes.DECIMAL(10, 7),
+    allowNull: true,
+  },
+  endLat: {
+    type: DataTypes.DECIMAL(10, 7),
+    allowNull: true,
+  },
+  endLng: {
+    type: DataTypes.DECIMAL(10, 7),
+    allowNull: true,
+  },
+});
+
+UserSession.belongsTo(User, {
+  foreignKey: "userId",
 });
 
 export default UserSession;

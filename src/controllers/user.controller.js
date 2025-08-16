@@ -272,7 +272,7 @@ class UserController extends BaseController {
   static async pingSession(req, res, next) {
     const payload = session.get("payload");
     const { userId } = payload;
-    const sessionData = await UserSessionService.managePing(userId);
+    const sessionData = await UserSessionService.managePing(userId, req.body);
     sendResponse(httpStatus.OK, res, sessionData);
   }
 

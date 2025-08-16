@@ -6,7 +6,9 @@ class UserSessionService extends BaseService {
   static PING_INTERVAL = 15; // seconds
   static SESSION_TIMEOUT = 20; // seconds (grace period)
 
-  static async managePing(userId) {
+  static Model = UserSession;
+
+  static async managePing(userId, location) {
     const transaction = session.get("transaction");
     const now = new Date();
 
@@ -34,20 +36,20 @@ class UserSessionService extends BaseService {
 
       if (secondsSinceLastPing > this.SESSION_TIMEOUT) {
         console.log(`Ending stale session ${activeSession.id}`);
-        await this.endSession(activeSession.id);
+        await this.endSession(activeSession.id, location);
 
-        result = await this.startNewSession(userId, transaction);
+        result = await this.startNewSession(userId, transaction, location);
       } else {
         result = await this.updateSessionPing(activeSession.id);
       }
     } else {
-      result = await this.startNewSession(userId, transaction);
+      result = await this.startNewSession(userId, transaction, location);
     }
 
     return result;
   }
 
-  static async startNewSession(userId, transaction) {
+  static async startNewSession(userId, transaction, location) {
     const sessionStart = new Date();
 
     const newSession = await UserSession.create(
@@ -57,6 +59,8 @@ class UserSessionService extends BaseService {
         startedAt: sessionStart,
         lastPingAt: sessionStart,
         endedAt: null,
+        startLat: location?.lat ?? null,
+        startLng: location?.lng ?? null,
       },
       { transaction },
     );
@@ -64,7 +68,9 @@ class UserSessionService extends BaseService {
     // Store transaction inside instance for later updates
     newSession.set("transaction", transaction);
 
-    console.log(`Started new session ${newSession.id} for user ${userId}`);
+    console.log(
+      `Started new session ${newSession.id} for user ${userId} at (${location?.lat}, ${location?.lng})`,
+    );
 
     return {
       message: "New session started",
@@ -72,6 +78,8 @@ class UserSessionService extends BaseService {
       action: "session_started",
       duration: 0,
       startedAt: sessionStart,
+      startLat: location?.lat ?? null,
+      startLng: location?.lng ?? null,
     };
   }
 
@@ -97,7 +105,7 @@ class UserSessionService extends BaseService {
     };
   }
 
-  static async endSession(sessionId) {
+  static async endSession(sessionId, location) {
     const session = await UserSession.findByPk(sessionId);
     if (!session) return null;
 
@@ -110,12 +118,17 @@ class UserSessionService extends BaseService {
     );
 
     await session.update(
-      { endedAt: now, duration: finalDuration },
+      {
+        endedAt: now,
+        duration: finalDuration,
+        endLat: location?.lat ?? null,
+        endLng: location?.lng ?? null,
+      },
       { transaction },
     );
 
     console.log(
-      `Ended session ${sessionId}, final duration: ${finalDuration}s`,
+      `Ended session ${sessionId}, final duration: ${finalDuration}s at (${location?.lat}, ${location?.lng})`,
     );
 
     return {
@@ -124,6 +137,8 @@ class UserSessionService extends BaseService {
       action: "session_ended",
       duration: finalDuration,
       endedAt: now,
+      endLat: location?.lat ?? null,
+      endLng: location?.lng ?? null,
     };
   }
 }
