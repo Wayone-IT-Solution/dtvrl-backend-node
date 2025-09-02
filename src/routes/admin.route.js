@@ -12,6 +12,10 @@ router
 router.use(authentication);
 
 router
+  .route("/change-pass")
+  .post(asyncHandler(AdminController.changePass.bind(AdminController)));
+
+router
   .route("/get-current-user")
   .get(asyncHandler(AdminController.getCurrentUser.bind(AdminController)));
 
@@ -78,7 +82,6 @@ router
 router
   .route("/:id?")
   .get(asyncHandler(AdminController.get.bind(AdminController)))
-  .post(asyncHandler(AdminController.create.bind(AdminController)))
   .put(asyncHandler(AdminController.update.bind(AdminController)))
   .delete(asyncHandler(AdminController.deleteDoc.bind(AdminController)));
 

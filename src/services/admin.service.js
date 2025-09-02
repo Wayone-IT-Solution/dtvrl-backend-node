@@ -1,4 +1,5 @@
 import Admin from "#models/admin";
+import AppError from "#utils/appError";
 import { compare } from "bcryptjs";
 import httpStatus from "http-status";
 import BaseService from "#services/base";

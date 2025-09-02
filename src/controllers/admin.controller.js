@@ -1,5 +1,7 @@
+import { hash } from "bcryptjs";
 import httpStatus from "http-status";
 import { Sequelize } from "sequelize";
+import AppError from "#utils/appError";
 import UserService from "#services/user";
 import PostService from "#services/post";
 import StampService from "#services/stamp";
@@ -26,6 +28,25 @@ class AdminController extends BaseController {
   static async login(req, res, next) {
     const tokenData = await this.Service.login(req.body);
     sendResponse(httpStatus.OK, res, tokenData, "Logged in successfully");
+  }
+
+  static async changePass(req, res, next) {
+    const payload = session.get("payload");
+    const { isAdmin, userId } = payload;
+
+    if (!isAdmin) {
+      throw new AppError({
+        httpStatus: httpStatus.FORBIDDEN,
+        message: "Only admins are allowed",
+      });
+    }
+
+    const { password } = req.body;
+    const admin = await this.Service.getDocById(userId);
+    admin.password = await hash(password, 10);
+    await admin.save();
+
+    sendResponse(httpStatus.OK, res, null, "Password changed successfully");
   }
 
   static async getCurrentUser(req, res, next) {
