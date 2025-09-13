@@ -35,7 +35,7 @@ class LocationController extends BaseController {
       ],
       group: ["Location.id"], // required to avoid grouping errors    };
     };
-    const options = this.Service.getOptions(
+	const options = this.Service.getOptions(
       { lat, lng, pagination: false },
       customOptions,
     );

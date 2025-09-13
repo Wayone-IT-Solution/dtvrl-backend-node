@@ -88,6 +88,9 @@ User.initialize(
     googleId: {
       type: DataTypes.STRING,
     },
+    appleId: {
+      type: DataTypes.STRING,
+    },
     firebaseToken: {
       type: DataTypes.STRING,
     },

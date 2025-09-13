@@ -28,6 +28,13 @@ const env = cleanEnv(process.env, {
   SMTP_SECURE: bool({ default: true }),
   SMTP_USER: str(),
   SMTP_PASS: str(),
+
+  // Apple Sign-in
+  APPLE_SERVICE_ID: str(), // com.dtvrl.diary.api
+  APPLE_TEAM_ID: str(), // Your Apple Developer Team ID
+  APPLE_KEY_ID: str(), // From your Apple Key
+  APPLE_KEY_PATH: str(), // Path to AuthKey_KEYID.p8
+  DOMAIN: str(), // e.g. https://api.dtvrl.com
 });
 
 export default env;

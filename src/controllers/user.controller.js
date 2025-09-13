@@ -38,7 +38,7 @@ class UserController extends BaseController {
     return this.getCurrentUser(req, res, next);
   }
 
-  static async resetPass(req, res, next) {
+    static async resetPass(req, res, next) {
     const { username } = req.body;
     const user = await this.Service.getDoc({ username });
 

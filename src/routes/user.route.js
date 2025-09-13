@@ -9,6 +9,7 @@ import UserController from "#controllers/user";
 import asyncHandler from "#utils/asyncHandler";
 import { session } from "#middlewares/requestSession";
 import { googleMobileAuth } from "#configs/googleLogin";
+import { appleMobileAuth } from "#configs/appleLogin";
 import { authentication, signupCheck } from "#middlewares/authentication";
 
 const router = express.Router();
@@ -39,6 +40,25 @@ router.get(
     delete user.password;
     user.token = token;
 
+    sendResponse(httpStatus.OK, res, user);
+  },
+);
+
+router.post("/auth/apple", passport.authenticate("apple")); // Client initiates this with a POST
+router.post("/auth/apple/mobile", asyncHandler(appleMobileAuth));
+
+router.post(
+  "/auth/apple/callback",
+  passport.authenticate("apple", { session: false, failureRedirect: "/login" }),
+  async (req, res) => {
+    const token = jwt.sign(
+      { userId: req.user.id, email: req.user.email, name: req.user.name },
+      env.JWT_SECRET,
+      { expiresIn: "7d" },
+    );
+    let user = req.user.toJSON();
+    delete user.password;
+    user.token = token;
     sendResponse(httpStatus.OK, res, user);
   },
 );
