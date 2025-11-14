@@ -1,9 +1,11 @@
+import fs from "node:fs/promises";
 import { Model } from "sequelize";
 import httpStatus from "http-status";
 import AppError from "#utils/appError";
 import sequelize from "#configs/database";
 import { session } from "#middlewares/requestSession";
 import { uploadFile } from "#configs/awsS3";
+import { buildPublicUrl } from "#utils/storage";
 import sharp from "sharp";
 
 class BaseModel extends Model {
@@ -298,6 +300,15 @@ class BaseModel extends Model {
         ) {
           try {
             let bufferToUpload = file.buffer;
+            if (!bufferToUpload && file.path) {
+              bufferToUpload = await fs.readFile(file.path);
+            }
+            if (!bufferToUpload) {
+              console.warn(
+                `Skipping file ${file.fieldname} because no buffer/path was available`,
+              );
+              continue;
+            }
             let mimeTypeToUpload = file.mimetype;
             const originalFileName = file.originalname || "file";
             let baseName =
@@ -343,7 +354,7 @@ class BaseModel extends Model {
             );
             filesPromises.push(uploadResult);
 
-            this[file.fieldname] = fileName;
+            this[file.fieldname] = buildPublicUrl(fileName);
             this.id = doc.id;
           } catch (error) {
             console.error(`Error processing file ${file.fieldname}:`, error);

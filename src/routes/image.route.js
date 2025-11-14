@@ -28,7 +28,7 @@ async function downloadFile(req, res) {
 
   try {
     const command = new GetObjectCommand({
-      Bucket: process.env.AWS_BUCKET_NAME,
+      Bucket: process.env.AWS_S3_BUCKET,
       Key: fileKey,
     });
 

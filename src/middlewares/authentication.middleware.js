@@ -21,6 +21,7 @@ export async function authentication(req, res, next) {
 
     session.set("userId", payload.userId);
     session.set("payload", payload);
+    req.user = payload;
 
     const isAdmin = payload.isAdmin;
 
@@ -63,6 +64,7 @@ export async function signupCheck(req, res, next) {
 
     session.set("userId", payload.userId);
     session.set("payload", payload);
+    req.user = payload;
 
     next();
   } catch (err) {

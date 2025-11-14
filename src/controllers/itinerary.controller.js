@@ -25,6 +25,8 @@ class ItineraryController extends BaseController {
     const { id } = req.params;
     req.query.userId = userId;
 
+    const currentUserId = session.get("userId");
+
     const customOptions = {
       include: [
         {
@@ -206,6 +208,7 @@ class ItineraryController extends BaseController {
   }
 
   static async getSharedItinerary(req, res, next) {
+    const currentUserId = session.get("userId");
     const customOptions = {
       include: [
         {
@@ -222,6 +225,9 @@ class ItineraryController extends BaseController {
                 attributes: [],
                 duplicating: false,
                 required: true,
+                where: {
+                  userId: currentUserId,
+                },
               },
             ]),
         {
@@ -295,7 +301,7 @@ class ItineraryController extends BaseController {
 
     if (req.query.search && req.query.searchIn) {
       req.query.public = true;
-    } else req.query.userId = session.get("userId");
+    }
 
     const options = this.Service.getOptions(req.query, customOptions);
     const data = await this.Service.get(null, req.query, options);

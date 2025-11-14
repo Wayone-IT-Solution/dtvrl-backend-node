@@ -1,17 +1,32 @@
-import Post from "#models/post";
-import User from "#models/user";
+import Reel from "#models/reel";
 import UserFollow from "#models/userFollow";
 import BaseService from "#services/base";
 import sequelize from "#configs/database";
 import { Op, QueryTypes } from "sequelize";
-import UserService from "#services/user";
-import UserFollowService from "#services/userFollow";
-import { session } from "#middlewares/requestSession";
-import sendNewPostNotification from "#utils/notification";
-import NotificationService from "#services/notification";
 
-class PostService extends BaseService {
-  static Model = Post;
+class ReelService extends BaseService {
+  static Model = Reel;
+
+  static toNumber(value, fallback = null) {
+    const num = Number(value);
+    return Number.isNaN(num) ? fallback : num;
+  }
+
+  static haversineDistance(lat1, lon1, lat2, lon2) {
+    const toRad = (deg) => (deg * Math.PI) / 180;
+    const R = 6371; // km
+
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) *
+        Math.cos(toRad(lat2)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
 
   static async findWithPagination({
     where = {},
@@ -30,7 +45,7 @@ class PostService extends BaseService {
       limit: limitNum,
       order,
       include,
-      distinct: true,
+      distinct: true, // for joins
     });
 
     const totalPages = Math.max(1, Math.ceil(count / limitNum));
@@ -118,16 +133,8 @@ class PostService extends BaseService {
     if (!bounds) return [];
     const { northEast, southWest } = bounds;
 
-    const posts = await this.Model.findAll({
+    const reels = await this.Model.findAll({
       attributes: ["locationLat", "locationLng"],
-      include: [
-        {
-          model: User,
-          attributes: [],
-          where: { isPrivate: false },
-          required: true,
-        },
-      ],
       where: {
         visibility: "public",
         locationLat: {
@@ -143,20 +150,19 @@ class PostService extends BaseService {
     const buckets = new Map();
     const size = bucketSize || 0.5;
 
-    for (const post of posts) {
+    for (const reel of reels) {
       if (
-        post.locationLat === null ||
-        post.locationLat === undefined ||
-        post.locationLng === null ||
-        post.locationLng === undefined
+        reel.locationLat === null ||
+        reel.locationLat === undefined ||
+        reel.locationLng === null ||
+        reel.locationLng === undefined
       ) {
         continue;
       }
-
       const latBucket =
-        Math.round((Number(post.locationLat) || 0) / size) * size;
+        Math.round((Number(reel.locationLat) || 0) / size) * size;
       const lngBucket =
-        Math.round((Number(post.locationLng) || 0) / size) * size;
+        Math.round((Number(reel.locationLng) || 0) / size) * size;
 
       const key = `${latBucket}:${lngBucket}`;
       if (!buckets.has(key)) {
@@ -168,13 +174,10 @@ class PostService extends BaseService {
     return Array.from(buckets.values());
   }
 
-  static async getNearbyPosts({ lat, lng, radius, page = 1, limit = 20 }) {
+  static async getNearbyReels({ lat, lng, radius, page = 1, limit = 20 }) {
     const pageNum = Number(page) || 1;
     const limitNum = Number(limit) || 20;
     const offset = (pageNum - 1) * limitNum;
-
-    const postTable = this.Model.getTableName().toString();
-    const userTable = User.getTableName().toString();
 
     const distanceExpression = `
       6371 * acos(
@@ -182,37 +185,29 @@ class PostService extends BaseService {
           1,
           GREATEST(
             -1,
-            cos(radians(:lat)) * cos(radians(p."locationLat")) *
-            cos(radians(p."locationLng") - radians(:lng)) +
-            sin(radians(:lat)) * sin(radians(p."locationLat"))
+            cos(radians(:lat)) * cos(radians(r."locationLat")) *
+            cos(radians(r."locationLng") - radians(:lng)) +
+            sin(radians(:lat)) * sin(radians(r."locationLat"))
           )
         )
       )
     `;
 
     const baseWhere = `
-      p."deletedAt" IS NULL
-      AND p."visibility" = 'public'
-      AND u."isPrivate" = false
-      AND p."locationLat" IS NOT NULL
-      AND p."locationLng" IS NOT NULL
+      r."deletedAt" IS NULL
+      AND r."visibility" = 'public'
+      AND r."locationLat" IS NOT NULL
+      AND r."locationLng" IS NOT NULL
     `;
 
-    const replacements = {
-      lat,
-      lng,
-      radius,
-      limit: limitNum,
-      offset,
-    };
+    const replacements = { lat, lng, radius, limit: limitNum, offset: offset };
 
     const items = await sequelize.query(
       `
       SELECT
-        p.*,
+        r.*,
         ${distanceExpression} AS "distanceKm"
-      FROM "${postTable}" AS p
-      INNER JOIN "${userTable}" AS u ON u."id" = p."userId"
+      FROM "Reels" AS r
       WHERE
         ${baseWhere}
         AND ${distanceExpression} <= :radius
@@ -225,8 +220,7 @@ class PostService extends BaseService {
     const [{ count: totalItemsRaw } = { count: 0 }] = await sequelize.query(
       `
       SELECT COUNT(*)::int AS count
-      FROM "${postTable}" AS p
-      INNER JOIN "${userTable}" AS u ON u."id" = p."userId"
+      FROM "Reels" AS r
       WHERE
         ${baseWhere}
         AND ${distanceExpression} <= :radius;
@@ -253,94 +247,6 @@ class PostService extends BaseService {
       },
     };
   }
-
-  static async create(data) {
-    const userId = session.get("userId");
-    const post = await super.create(data);
-
-    const customOptions = {
-      include: [
-        {
-          model: UserService.Model,
-          as: "user",
-          attributes: ["firebaseToken", "id"],
-        },
-      ],
-      attributes: ["id", "userId"],
-    };
-
-    const options = UserFollowService.getOptions(
-      { pagination: false, otherId: userId },
-      customOptions,
-    );
-
-    const [followers, user] = await Promise.all([
-      UserFollowService.get(null, { otherId: userId }, options),
-      UserService.getDocById(userId),
-    ]);
-
-    const notificationPayloads = [];
-
-    const firebaseTokens = followers.map((ele) => {
-      const notificationData = {
-        actorId: userId,
-        recipientId: ele.user.id,
-        type: "POST_CREATED",
-        status: "UNREAD",
-        title: `New post by ${user.name}`,
-        message: post.caption?.slice(20),
-        entityId: post.id,
-        metadata: null,
-        scheduledFor: null,
-        readAt: null,
-        expiresAt: null,
-      };
-
-      notificationPayloads.push(notificationData);
-      return ele.user.firebaseToken;
-    });
-
-    const notification = {
-      title: `New Post from ${user.username}`,
-      body: "Check out our latest update – you’ll love it!",
-    };
-
-    const tokenData = {
-      notification,
-      data: {
-        type: "POST_CREATED",
-        id: String(post.id),
-        userId: String(userId),
-      },
-    };
-
-    sendNewPostNotification(firebaseTokens, tokenData)
-      .then((ele) => {
-        console.log(ele);
-      })
-      .catch((e) => {
-        console.log(e);
-      });
-
-    await NotificationService.Model.bulkCreate(notificationPayloads, {
-      transaction: session.get("transaction"),
-    });
-
-    return post;
-  }
-
-  static async updateDocById(id, data) {
-    return super.update(id, data);
-  }
-
-  static async deleteDoc(id) {
-    const doc = await this.Model.findDocById(id);
-    await doc.destroy({ force: true });
-  }
-
-  static async deleteDocById(id) {
-    return this.deleteDoc(id);
-  }
 }
 
-export default PostService;
+export default ReelService;

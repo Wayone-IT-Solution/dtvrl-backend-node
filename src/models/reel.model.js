@@ -1,10 +1,10 @@
-import User from "#models/user";
 import BaseModel from "#models/base";
+import User from "#models/user";
 import { DataTypes } from "sequelize";
 
-class Post extends BaseModel {}
+class Reel extends BaseModel {}
 
-Post.initialize({
+Reel.initialize({
   userId: {
     type: DataTypes.INTEGER,
     allowNull: false,
@@ -14,9 +14,12 @@ Post.initialize({
     },
     onDelete: "CASCADE",
   },
-  image: {
+  videoUrl: {
     type: DataTypes.TEXT,
-    file: true,
+    allowNull: false,
+  },
+  thumbnailUrl: {
+    type: DataTypes.TEXT,
     allowNull: true,
   },
   caption: {
@@ -60,8 +63,8 @@ Post.initialize({
   },
 });
 
-Post.belongsTo(User, {
+Reel.belongsTo(User, {
   foreignKey: "userId",
 });
 
-export default Post;
+export default Reel;

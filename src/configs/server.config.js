@@ -32,8 +32,10 @@ app.use(express.static(publicPath)); // Request logging middleware
 app.use(morgan(logger));
 app.use(cors());
 
-// Middleware to parse incoming JSON request bodies
-app.use(multer().any());
+const upload = multer({ dest: "tmp/uploads" });
+app.use(upload.any());       
+
+
 app.use(express.json()); // Express's built-in JSON parser
 
 // Middleware to parse URL-encoded data (like form submissions)

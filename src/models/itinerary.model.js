@@ -1,6 +1,7 @@
 import BaseModel from "#models/base";
 import { DataTypes } from "sequelize";
 import User from "#models/user";
+import AiChatMessage from "#models/aiChatMessage";
 
 class Itinerary extends BaseModel {}
 
@@ -43,10 +44,24 @@ Itinerary.initialize({
     allowNull: false,
     defaultValue: 0,
   },
+  aiMessageId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: AiChatMessage,
+      key: AiChatMessage.primaryKeyAttribute,
+    },
+    onDelete: "SET NULL",
+    unique: true,
+  },
 });
 
 Itinerary.belongsTo(User, {
   foreignKey: "userId",
+});
+
+Itinerary.belongsTo(AiChatMessage, {
+  foreignKey: "aiMessageId",
 });
 
 export default Itinerary;

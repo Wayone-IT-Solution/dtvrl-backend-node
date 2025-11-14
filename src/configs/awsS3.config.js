@@ -10,10 +10,10 @@ import env from "#configs/env"; // Assuming your env file is in the same directo
 const s3Client = new S3Client({
   region: env.AWS_S3_REGION,
   credentials: {
-    accessKeyId: env.AWS_S3_KEY,
-    secretAccessKey: env.AWS_S3_SECRET,
+    accessKeyId: env.AWS_S3_ACCESS_KEY_ID,
+    secretAccessKey: env.AWS_S3_SECRET_ACCESS_KEY,
   },
-  endpoint: env.AWS_S3_ENDPOINT, // For MinIO, set this to your MinIO server URL (e.g., http://localhost:9000). For AWS, comment out this line.
+  endpoint: env.AWS_S3_BASE_URL, // For MinIO, set this to your MinIO server URL (e.g., http://localhost:9000). For AWS, comment out this line.
   forcePathStyle: true, // Required for MinIO compatibility
   // To use with AWS S3 instead of MinIO, comment out the endpoint and forcePathStyle lines
 });
@@ -22,7 +22,7 @@ const s3Client = new S3Client({
 export const uploadFile = async (fileKey, fileBuffer, contentType) => {
   try {
     const command = new PutObjectCommand({
-      Bucket: env.AWS_BUCKET_NAME,
+      Bucket: env.AWS_S3_BUCKET,
       Key: fileKey,
       Body: fileBuffer,
       ContentType: contentType,
@@ -39,7 +39,7 @@ export const uploadFile = async (fileKey, fileBuffer, contentType) => {
 export const getFile = async (fileKey) => {
   try {
     const command = new GetObjectCommand({
-      Bucket: env.AWS_BUCKET_NAME,
+      Bucket: env.AWS_S3_BUCKET,
       Key: fileKey,
     });
 
@@ -54,7 +54,7 @@ export const getFile = async (fileKey) => {
 export const deleteFile = async (fileKey) => {
   try {
     const command = new DeleteObjectCommand({
-      Bucket: env.AWS_BUCKET_NAME,
+      Bucket: env.AWS_S3_BUCKET,
       Key: fileKey,
     });
 

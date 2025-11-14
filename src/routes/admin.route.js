@@ -9,7 +9,7 @@ router
   .route("/login")
   .post(asyncHandler(AdminController.login.bind(AdminController)));
 
-router.use(authentication);
+// router.use(authentication);
 
 router
   .route("/change-pass")
