@@ -41,6 +41,11 @@ Memory.initialize(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    privacy: {
+      type: DataTypes.ENUM("private", "open_to_all"),
+      allowNull: false,
+      defaultValue: "private",
+    },
   },
   {
     validate: {

@@ -9,11 +9,22 @@ export default async function renderMap(req, res) {
   const OLA_API_KEY = env.OLA_API_KEY;
   const userId = session.get("userId");
 
-  const options = MemoryService.getOptions(
-    { pagination: false, userId },
-    { raw: true },
+  if (!userId) {
+    res.status(401).send("Unauthorized");
+    return;
+  }
+
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 200;
+
+  const mapData = await MemoryService.findForMapWithPrivacy({
+    viewerId: userId,
+    page,
+    limit,
+  });
+  const memories = mapData.result.map((row) =>
+    typeof row.toJSON === "function" ? row.toJSON() : row,
   );
-  const memories = await MemoryService.get(null, { userId }, options);
 
   // Use India Gate as default if lat/lng not provided
   const defaultLat = req.query.lat ? parseFloat(req.query.lat) : 28.6129;

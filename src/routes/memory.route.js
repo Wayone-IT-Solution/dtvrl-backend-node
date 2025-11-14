@@ -8,16 +8,47 @@ const router = express.Router();
 
 router.use(authentication);
 
-router.route("/map").get(asyncHandler(renderMap));
+// Preview page for Ola Maps debugging
+router.get("/map/preview", asyncHandler(renderMap));
 
-router
-  .route("/all/:id?")
-  .get(asyncHandler(MemoryController.getMemories.bind(MemoryController)));
+// Privacy-aware map/timeline APIs
+router.get(
+  "/map",
+  asyncHandler(MemoryController.listForMap.bind(MemoryController)),
+);
 
+router.get(
+  "/timeline",
+  asyncHandler(MemoryController.listForTimeline.bind(MemoryController)),
+);
+
+// User-specific listing
+router.get(
+  "/user/:userId(\\d+)",
+  asyncHandler(MemoryController.listByUser.bind(MemoryController)),
+);
+
+// Admin/all access passthrough
+router.get(
+  "/all/:id?",
+  asyncHandler(MemoryController.getMemories.bind(MemoryController)),
+);
+
+// Update privacy only
+router.patch(
+  "/privacy/:id(\\d+)",
+  asyncHandler(MemoryController.updatePrivacy.bind(MemoryController)),
+);
+
+// Default CRUD
 router
-  .route("/:id?")
+  .route("/")
   .get(asyncHandler(MemoryController.get.bind(MemoryController)))
-  .post(asyncHandler(MemoryController.create.bind(MemoryController)))
+  .post(asyncHandler(MemoryController.create.bind(MemoryController)));
+
+router
+  .route("/:id(\\d+)")
+  .get(asyncHandler(MemoryController.getOne.bind(MemoryController)))
   .put(asyncHandler(MemoryController.update.bind(MemoryController)))
   .delete(asyncHandler(MemoryController.deleteDoc.bind(MemoryController)));
 
