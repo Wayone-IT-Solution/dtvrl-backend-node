@@ -6,6 +6,8 @@ import { sendResponse } from "#utils/response";
 import { session } from "#middlewares/requestSession";
 import User from "#models/user";
 import UserFollow from "#models/userFollow";
+import UserBlockService from "#services/userBlock";
+import { Op } from "sequelize";
 
 class MemoryController extends BaseController {
   static Service = MemoryService;
@@ -21,8 +23,18 @@ class MemoryController extends BaseController {
     );
   }
 
-  static async isFollower(viewerId, ownerId) {
+  static async isFollower(viewerId, ownerId, blockedIds = null) {
     if (!viewerId) return false;
+
+    let blockedList = blockedIds ?? null;
+    if (blockedList === null) {
+      blockedList = await UserBlockService.getBlockedUserIdsFor(viewerId);
+    }
+    blockedList = blockedList ?? [];
+
+    if (blockedList.includes(ownerId)) {
+      return false;
+    }
 
     const follow = await UserFollow.findOne({
       where: {
@@ -44,11 +56,19 @@ class MemoryController extends BaseController {
       viewerId !== null && Number(viewerId) === Number(memory.userId);
     if (isOwner) return true;
 
+    let blockedIds = [];
+    if (viewerId) {
+      blockedIds = await UserBlockService.getBlockedUserIdsFor(viewerId);
+      if (blockedIds.includes(ownerId)) {
+        return false;
+      }
+    }
+
     if (memory.privacy === "private") {
       return false;
     }
 
-    const isFollower = await this.isFollower(viewerId, ownerId);
+    const isFollower = await this.isFollower(viewerId, ownerId, blockedIds);
     return isFollower;
   }
 
@@ -60,6 +80,76 @@ class MemoryController extends BaseController {
     if (limit < 1) limit = 10;
 
     return { page, limit };
+  }
+
+  static buildDateRangeFilter(query = {}) {
+    const { startDate, endDate } = query;
+    const filter = {};
+
+    if (startDate) {
+      const parsed = new Date(startDate);
+      if (!Number.isNaN(parsed.getTime())) {
+        filter[Op.gte] = parsed;
+      }
+    }
+
+    if (endDate) {
+      const parsed = new Date(endDate);
+      if (!Number.isNaN(parsed.getTime())) {
+        filter[Op.lte] = parsed;
+      }
+    }
+
+    return Object.keys(filter).length ? filter : null;
+  }
+
+  static buildMemoryWhere(query = {}) {
+    const where = {};
+
+    if (query.userId) {
+      const id = Number(query.userId);
+      if (!Number.isNaN(id)) {
+        where.userId = id;
+      }
+    }
+
+    if (query.privacy) {
+      const privacy = String(query.privacy)
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean);
+
+      if (privacy.length && !privacy.includes("all")) {
+        where.privacy =
+          privacy.length === 1 ? privacy[0] : { [Op.in]: privacy };
+      }
+    }
+
+    const dateFilter = this.buildDateRangeFilter(query);
+    if (dateFilter) {
+      where.createdAt = dateFilter;
+    }
+
+    const search = String(query.search || "").trim();
+    if (search) {
+      where.name = {
+        [Op.iLike]: `%${search}%`,
+      };
+    }
+
+    return where;
+  }
+
+  static buildMemorySort(query = {}) {
+    const allowed = new Set(["createdAt", "startDate", "endDate"]);
+    const requested = String(query.sortBy || "").trim();
+    const sortBy = allowed.has(requested) ? requested : "createdAt";
+    const sortOrder =
+      String(query.sortOrder || "").toUpperCase() === "ASC"
+        ? "ASC"
+        : "DESC";
+
+    return [[sortBy, sortOrder]];
   }
 
   static parseBounds(query) {
@@ -107,19 +197,101 @@ class MemoryController extends BaseController {
   }
 
   static async getMemories(req, res, next) {
-    return await super.get(req, res, next);
+    const { id } = req.params;
+    if (id) {
+      const folder = await this.Service.getDocById(id, {
+        include: [
+          {
+            model: User,
+            attributes: ["id", "name", "username", "profile", "email"],
+          },
+        ],
+      });
+      return sendResponse(
+        httpStatus.OK,
+        res,
+        folder,
+        "Memory folder fetched successfully",
+      );
+    }
+
+    const payload = session.get("payload");
+    const isAdmin = Boolean(payload?.isAdmin);
+    const { page, limit } = this.parsePagination(req.query);
+    const where = this.buildMemoryWhere(req.query);
+    const order = this.buildMemorySort(req.query);
+
+    if (!isAdmin) {
+      const currentUserId = this.getCurrentUserId(req);
+      if (!currentUserId) {
+        throw new AppError({
+          message: "Unauthorized",
+          httpStatus: httpStatus.UNAUTHORIZED,
+        });
+      }
+      where.userId = currentUserId;
+    }
+
+    const data = await this.Service.findWithPagination({
+      where,
+      page,
+      limit,
+      order,
+      include: [
+        {
+          model: User,
+          attributes: ["id", "name", "username", "profile", "email"],
+        },
+      ],
+    });
+
+    sendResponse(
+      httpStatus.OK,
+      res,
+      data,
+      "Memory folders fetched successfully",
+    );
   }
 
   static async get(req, res, next) {
-    const userId = this.getCurrentUserId(req);
-    if (!userId) {
-      throw new AppError({
-        message: "Unauthorized",
-        httpStatus: httpStatus.UNAUTHORIZED,
-      });
+    const currentUserId = this.getCurrentUserId(req);
+    const payload = session.get("payload");
+    const isAdmin = Boolean(payload?.isAdmin);
+    const { id } = req.params;
+
+    if (!isAdmin) {
+      if (!currentUserId) {
+        throw new AppError({
+          message: "Unauthorized",
+          httpStatus: httpStatus.UNAUTHORIZED,
+        });
+      }
+      req.query.userId = currentUserId;
+    } else if (req.query.userId !== undefined) {
+      const requestedId = Number(req.query.userId);
+      if (!Number.isNaN(requestedId)) {
+        req.query.userId = requestedId;
+      } else {
+        delete req.query.userId;
+      }
     }
-    req.query.userId = userId;
-    return await super.get(req, res, next);
+
+    const customOptions = {
+      include: [
+        {
+          model: User,
+          attributes: ["id", "name", "username", "email", "profile"],
+        },
+      ],
+      order: [["createdAt", "DESC"]],
+    };
+
+    const options = this.Service.getOptions(req.query, customOptions);
+    const data = id
+      ? await this.Service.getDocById(id, customOptions)
+      : await this.Service.get(id, req.query, options);
+
+    sendResponse(httpStatus.OK, res, data, "Memories fetched successfully");
   }
 
   static async getOne(req, res) {

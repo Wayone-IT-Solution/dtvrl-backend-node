@@ -9,6 +9,7 @@ import UserFollowService from "#services/userFollow";
 import { session } from "#middlewares/requestSession";
 import sendNewPostNotification from "#utils/notification";
 import NotificationService from "#services/notification";
+import UserBlockService from "#services/userBlock";
 
 class PostService extends BaseService {
   static Model = Post;
@@ -86,10 +87,17 @@ class PostService extends BaseService {
       raw: true,
     });
 
-    const followedIds = follows.map((row) => row.otherId);
-    if (!followedIds.includes(userId)) followedIds.push(userId);
+    const blockedUserIds = await UserBlockService.getBlockedUserIdsFor(userId);
 
-    if (!followedIds.length) {
+    const followedIds = follows.map((row) => row.otherId);
+    const allowedAuthorIds = followedIds.filter(
+      (followedId) => !blockedUserIds.includes(followedId),
+    );
+    if (!allowedAuthorIds.includes(userId)) {
+      allowedAuthorIds.push(userId);
+    }
+
+    if (!allowedAuthorIds.length) {
       return {
         result: [],
         pagination: {
@@ -102,7 +110,7 @@ class PostService extends BaseService {
     }
 
     const where = {
-      userId: { [Op.in]: followedIds },
+      userId: { [Op.in]: allowedAuthorIds },
       visibility: { [Op.in]: ["public", "followers"] },
     };
 

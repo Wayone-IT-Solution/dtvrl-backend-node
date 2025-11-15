@@ -9,11 +9,14 @@ import {
   generateThumbnail,
   getVideoDurationInSeconds,
   uploadToStorage,
+  uploadThumbnailFile,
 } from "#utils/reel";
 
 import User from "#models/user";
 import UserFollow from "#models/userFollow";
 import ReelWasHere from "#models/reelWasHere";
+import { Op } from "sequelize";
+import UserBlockService from "#services/userBlock";
 
 class ReelController extends BaseController {
   static Service = ReelService;
@@ -54,6 +57,83 @@ class ReelController extends BaseController {
     return { page, limit };
   }
 
+  static buildDateRangeFilter(query) {
+    const { startDate, endDate } = query;
+    const filter = {};
+
+    if (startDate) {
+      const parsed = new Date(startDate);
+      if (!Number.isNaN(parsed.getTime())) {
+        filter[Op.gte] = parsed;
+      }
+    }
+
+    if (endDate) {
+      const parsed = new Date(endDate);
+      if (!Number.isNaN(parsed.getTime())) {
+        filter[Op.lte] = parsed;
+      }
+    }
+
+    return Object.keys(filter).length ? filter : null;
+  }
+
+  static buildReelListWhere(query) {
+    const where = {};
+    const defaultVisibility = "public";
+
+    if (!query.visibility) {
+      where.visibility = defaultVisibility;
+    } else {
+      const vis = String(query.visibility)
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean);
+
+      if (
+        vis.length &&
+        !(vis.length === 1 && vis[0].toLowerCase() === "all")
+      ) {
+        where.visibility =
+          vis.length === 1 ? vis[0] : { [Op.in]: vis };
+      }
+    }
+
+    if (query.userId) {
+      const id = Number(query.userId);
+      if (!Number.isNaN(id)) {
+        where.userId = id;
+      }
+    }
+
+    const dateFilter = this.buildDateRangeFilter(query);
+    if (dateFilter) {
+      where.createdAt = dateFilter;
+    }
+
+    const search = String(query.search || "").trim();
+    if (search) {
+      where.caption = {
+        [Op.iLike]: `%${search}%`,
+      };
+    }
+
+    return where;
+  }
+
+  static buildReelSort(query) {
+    const allowed = new Set(["createdAt", "wasHereCount"]);
+    const requested = String(query.sortBy || "").trim();
+    const sortBy = allowed.has(requested) ? requested : "createdAt";
+
+    const order =
+      String(query.sortOrder || "").toUpperCase() === "ASC"
+        ? "ASC"
+        : "DESC";
+
+    return [[sortBy, order]];
+  }
+
   static parseBounds(query) {
     const neLat = Number(query.ne_lat ?? query.neLat);
     const neLng = Number(query.ne_lng ?? query.neLng);
@@ -88,8 +168,18 @@ class ReelController extends BaseController {
   }
 
   // viewerId = who is trying to see, ownerId = whose content
-  static async isFollower(viewerId, ownerId) {
+  static async isFollower(viewerId, ownerId, blockedIds = null) {
     if (!viewerId) return false;
+
+    let blockedList = blockedIds ?? null;
+    if (blockedList === null) {
+      blockedList = await UserBlockService.getBlockedUserIdsFor(viewerId);
+    }
+    blockedList = blockedList ?? [];
+
+    if (blockedList.includes(ownerId)) {
+      return false;
+    }
 
     const follow = await UserFollow.findOne({
       where: {
@@ -113,8 +203,16 @@ class ReelController extends BaseController {
     const isOwner = viewerId && Number(viewerId) === Number(reel.userId);
     if (isOwner) return true;
 
+    let blockedIds = [];
+    if (viewerId) {
+      blockedIds = await UserBlockService.getBlockedUserIdsFor(viewerId);
+      if (blockedIds.includes(owner.id)) {
+        return false;
+      }
+    }
+
     const isAccountPrivate = !!owner.isPrivate;
-    const isFollower = await this.isFollower(viewerId, owner.id);
+    const isFollower = await this.isFollower(viewerId, owner.id, blockedIds);
 
     // 1. private reels -> only owner
     if (reel.visibility === "private") {
@@ -182,6 +280,7 @@ class ReelController extends BaseController {
       });
     }
     const videoFile = files.find((file) => file.fieldname === "video");
+    const thumbnailFile = files.find((file) => file.fieldname === "thumbnail");
 
     if (!videoFile || !videoFile.path) {
       throw new AppError({
@@ -191,6 +290,7 @@ class ReelController extends BaseController {
     }
 
     const videoPath = videoFile.path;
+    const thumbnailPath = thumbnailFile?.path;
 
     const cleanupTempFile = async () => {
       if (!videoPath) return;
@@ -198,6 +298,13 @@ class ReelController extends BaseController {
         await fs.unlink(videoPath);
       } catch (error) {
         console.warn("Failed to remove temp reel file:", error.message);
+      }
+      if (thumbnailPath) {
+        try {
+          await fs.unlink(thumbnailPath);
+        } catch (error) {
+          console.warn("Failed to remove temp thumbnail file:", error.message);
+        }
       }
     };
 
@@ -211,7 +318,9 @@ class ReelController extends BaseController {
       }
 
       const videoUrl = await uploadToStorage(videoPath, videoFile.originalname);
-      const thumbnailUrl = await generateThumbnail(videoPath);
+      const thumbnailUrl = thumbnailPath
+        ? await uploadThumbnailFile(thumbnailPath, thumbnailFile?.originalname)
+        : await generateThumbnail(videoPath);
 
       const payload = {
         userId,
@@ -241,18 +350,30 @@ class ReelController extends BaseController {
   // GET /reels?page=1&limit=10
   static async getAll(req, res) {
     const { page, limit } = this.parsePagination(req.query);
+    const where = this.buildReelListWhere(req.query);
+    const order = this.buildReelSort(req.query);
+
+    const include = [];
+    const includePrivateUsers =
+      String(req.query.includePrivateUsers || "").toLowerCase() === "true";
+
+    const userInclude = {
+      model: User,
+      attributes: ["id", "name", "username", "email", "profile", "isPrivate"],
+    };
+
+    if (!includePrivateUsers) {
+      userInclude.where = { isPrivate: false };
+    }
+
+    include.push(userInclude);
 
     const data = await this.Service.findWithPagination({
-      where: { visibility: "public" },
+      where,
       page,
       limit,
-      include: [
-        {
-          model: User,
-          attributes: [], // we only need isPrivate for filtering
-          where: { isPrivate: false },
-        },
-      ],
+      include,
+      order,
     });
 
     sendResponse(httpStatus.OK, res, data, "Reels fetched successfully");
@@ -350,8 +471,20 @@ class ReelController extends BaseController {
 
     const isOwner =
       currentUserId && Number(currentUserId) === Number(userIdNum);
+
+    let blockedIds = [];
+    if (!isOwner && currentUserId) {
+      blockedIds = await UserBlockService.getBlockedUserIdsFor(currentUserId);
+      if (blockedIds.includes(owner.id)) {
+        throw new AppError({
+          message: "You are not allowed to view this user's reels",
+          httpStatus: httpStatus.FORBIDDEN,
+        });
+      }
+    }
+
     const isAccountPrivate = !!owner.isPrivate;
-    const isFollower = await this.isFollower(currentUserId, owner.id);
+    const isFollower = await this.isFollower(currentUserId, owner.id, blockedIds);
 
     let visibilityFilter;
 

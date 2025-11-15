@@ -7,6 +7,8 @@ import User from "#models/user";
 import UserFollow from "#models/userFollow";
 import { session } from "#middlewares/requestSession";
 import { sendResponse } from "#utils/response";
+import { Op } from "sequelize";
+import UserBlockService from "#services/userBlock";
 
 class PostController extends BaseController {
   static Service = PostService;
@@ -47,6 +49,83 @@ class PostController extends BaseController {
     return { page, limit };
   }
 
+  static buildDateRangeFilter(query) {
+    const { startDate, endDate } = query;
+    const filter = {};
+
+    if (startDate) {
+      const parsed = new Date(startDate);
+      if (!Number.isNaN(parsed.getTime())) {
+        filter[Op.gte] = parsed;
+      }
+    }
+
+    if (endDate) {
+      const parsed = new Date(endDate);
+      if (!Number.isNaN(parsed.getTime())) {
+        filter[Op.lte] = parsed;
+      }
+    }
+
+    return Object.keys(filter).length ? filter : null;
+  }
+
+  static buildPostListWhere(query) {
+    const where = {};
+    const defaultVisibility = "public";
+
+    if (!query.visibility) {
+      where.visibility = defaultVisibility;
+    } else {
+      const vis = String(query.visibility)
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean);
+
+      if (
+        vis.length &&
+        !(vis.length === 1 && vis[0].toLowerCase() === "all")
+      ) {
+        where.visibility =
+          vis.length === 1 ? vis[0] : { [Op.in]: vis };
+      }
+    }
+
+    if (query.userId) {
+      const id = Number(query.userId);
+      if (!Number.isNaN(id)) {
+        where.userId = id;
+      }
+    }
+
+    const dateFilter = this.buildDateRangeFilter(query);
+    if (dateFilter) {
+      where.createdAt = dateFilter;
+    }
+
+    const search = String(query.search || "").trim();
+    if (search) {
+      where.caption = {
+        [Op.iLike]: `%${search}%`,
+      };
+    }
+
+    return where;
+  }
+
+  static buildPostSort(query) {
+    const allowed = new Set(["createdAt", "wasHereCount"]);
+    const requested = String(query.sortBy || "").trim();
+    const sortBy = allowed.has(requested) ? requested : "createdAt";
+
+    const order =
+      String(query.sortOrder || "").toUpperCase() === "ASC"
+        ? "ASC"
+        : "DESC";
+
+    return [[sortBy, order]];
+  }
+
   static parseBounds(query) {
     const neLat = Number(query.ne_lat ?? query.neLat);
     const neLng = Number(query.ne_lng ?? query.neLng);
@@ -80,8 +159,18 @@ class PostController extends BaseController {
     );
   }
 
-  static async isFollower(viewerId, ownerId) {
+  static async isFollower(viewerId, ownerId, blockedIds = null) {
     if (!viewerId) return false;
+
+    let blockedList = blockedIds ?? null;
+    if (blockedList === null) {
+      blockedList = await UserBlockService.getBlockedUserIdsFor(viewerId);
+    }
+    blockedList = blockedList ?? [];
+
+    if (blockedList.includes(ownerId)) {
+      return false;
+    }
 
     const follow = await UserFollow.findOne({
       where: {
@@ -104,8 +193,16 @@ class PostController extends BaseController {
     const isOwner = viewerId && Number(viewerId) === Number(post.userId);
     if (isOwner) return true;
 
+    let blockedIds = [];
+    if (viewerId) {
+      blockedIds = await UserBlockService.getBlockedUserIdsFor(viewerId);
+      if (blockedIds.includes(owner.id)) {
+        return false;
+      }
+    }
+
     const isAccountPrivate = !!owner.isPrivate;
-    const isFollower = await this.isFollower(viewerId, owner.id);
+    const isFollower = await this.isFollower(viewerId, owner.id, blockedIds);
 
     if (post.visibility === "private") {
       return false;
@@ -202,18 +299,30 @@ class PostController extends BaseController {
 
   static async getAll(req, res) {
     const { page, limit } = this.parsePagination(req.query);
+    const where = this.buildPostListWhere(req.query);
+    const order = this.buildPostSort(req.query);
+
+    const include = [];
+    const includePrivateUsers =
+      String(req.query.includePrivateUsers || "").toLowerCase() === "true";
+
+    const userInclude = {
+      model: User,
+      attributes: ["id", "name", "username", "email", "profile", "isPrivate"],
+    };
+
+    if (!includePrivateUsers) {
+      userInclude.where = { isPrivate: false };
+    }
+
+    include.push(userInclude);
 
     const data = await this.Service.findWithPagination({
-      where: { visibility: "public" },
+      where,
       page,
       limit,
-      include: [
-        {
-          model: User,
-          attributes: [],
-          where: { isPrivate: false },
-        },
-      ],
+      include,
+      order,
     });
 
     sendResponse(httpStatus.OK, res, data, "Posts fetched successfully");
@@ -262,8 +371,20 @@ class PostController extends BaseController {
 
     const isOwner =
       currentUserId && Number(currentUserId) === Number(userIdNum);
+
+    let blockedIds = [];
+    if (!isOwner && currentUserId) {
+      blockedIds = await UserBlockService.getBlockedUserIdsFor(currentUserId);
+      if (blockedIds.includes(owner.id)) {
+        throw new AppError({
+          message: "You are not allowed to view this user's posts",
+          httpStatus: httpStatus.FORBIDDEN,
+        });
+      }
+    }
+
     const isAccountPrivate = !!owner.isPrivate;
-    const isFollower = await this.isFollower(currentUserId, owner.id);
+    const isFollower = await this.isFollower(currentUserId, owner.id, blockedIds);
 
     let visibilityFilter;
 

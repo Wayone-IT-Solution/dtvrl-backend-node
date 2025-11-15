@@ -5,6 +5,7 @@ import UserFollow from "#models/userFollow";
 import { deleteFile } from "#configs/awsS3";
 import { session } from "#middlewares/requestSession";
 import { Op, col, cast, where as sequelizeWhere, fn } from "sequelize";
+import UserBlockService from "#services/userBlock";
 
 class MemoryService extends BaseService {
   static Model = Memory;
@@ -105,11 +106,19 @@ class MemoryService extends BaseService {
       return this.buildEmptyResult(page, limit);
     }
 
+    const blockedIds = await UserBlockService.getBlockedUserIdsFor(viewerId);
+
     const andConditions = [
       accessWhere,
       { latitude: { [Op.ne]: null } },
       { longitude: { [Op.ne]: null } },
     ];
+
+    if (blockedIds.length) {
+      andConditions.push({
+        userId: { [Op.notIn]: blockedIds },
+      });
+    }
 
     if (bounds) {
       // Safely cast string lat/lng with sanitation to avoid casting invalid values
@@ -157,8 +166,14 @@ class MemoryService extends BaseService {
       return this.buildEmptyResult(page, limit);
     }
 
+    const blockedIds = await UserBlockService.getBlockedUserIdsFor(viewerId);
+    const where =
+      blockedIds.length > 0
+        ? { [Op.and]: [accessWhere, { userId: { [Op.notIn]: blockedIds } }] }
+        : accessWhere;
+
     return this.findWithPagination({
-      where: accessWhere,
+      where,
       page,
       limit,
       order: [["startDate", "DESC"]],

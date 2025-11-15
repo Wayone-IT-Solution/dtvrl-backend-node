@@ -7,10 +7,13 @@ import AppError from "#utils/appError";
 class AiChatSessionService extends BaseService {
   static Model = AiChatSession;
 
-  static async getUserSessionById(id, { userId = session.get("userId") } = {}) {
+  static async getUserSessionById(
+    id,
+    { userId = session.get("userId"), allowAdmin = false } = {},
+  ) {
     const doc = await this.Model.findDocById(id);
 
-    if (doc.userId !== userId) {
+    if (!allowAdmin && doc.userId !== userId) {
       throw new AppError({
         status: false,
         message: "You do not have access to this AI chat session",

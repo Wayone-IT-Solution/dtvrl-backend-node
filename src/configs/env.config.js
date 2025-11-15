@@ -37,6 +37,8 @@ const env = cleanEnv(process.env, {
   APPLE_KEY_ID: str(), // From your Apple Key
   APPLE_KEY_PATH: str(), // Path to AuthKey_KEYID.p8
   DOMAIN: str(), // e.g. https://api.dtvrl.com
+  AI_CHAT_MAX_STORED_MESSAGES: num({ default: 40 }),
+  AI_CHAT_MAX_FETCHED_MESSAGES: num({ default: 40 }),
 });
 
 export default env;

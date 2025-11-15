@@ -5,8 +5,6 @@ import { authentication } from "#middlewares/authentication";
 
 const router = express.Router();
 
-// router.use(authentication);
-
 router
   .route("/get-messages")
   .get(
@@ -14,6 +12,12 @@ router
       MessageController.getMessagesBetweenUsers.bind(MessageController),
     ),
   );
+
+router.get(
+  "/user/:userId(\\d+)",
+  authentication,
+  asyncHandler(MessageController.getAiMessagesForUser.bind(MessageController)),
+);
 
 router
   .route("/chat-list/:id")

@@ -3,6 +3,7 @@ import UserFollow from "#models/userFollow";
 import BaseService from "#services/base";
 import sequelize from "#configs/database";
 import { Op, QueryTypes } from "sequelize";
+import UserBlockService from "#services/userBlock";
 
 class ReelService extends BaseService {
   static Model = Reel;
@@ -101,10 +102,17 @@ class ReelService extends BaseService {
       raw: true,
     });
 
-    const followedIds = follows.map((row) => row.otherId);
-    if (!followedIds.includes(userId)) followedIds.push(userId);
+    const blockedUserIds = await UserBlockService.getBlockedUserIdsFor(userId);
 
-    if (!followedIds.length) {
+    const followedIds = follows.map((row) => row.otherId);
+    const allowedAuthorIds = followedIds.filter(
+      (followedId) => !blockedUserIds.includes(followedId),
+    );
+    if (!allowedAuthorIds.includes(userId)) {
+      allowedAuthorIds.push(userId);
+    }
+
+    if (!allowedAuthorIds.length) {
       return {
         result: [],
         pagination: {
@@ -117,7 +125,7 @@ class ReelService extends BaseService {
     }
 
     const where = {
-      userId: { [Op.in]: followedIds },
+      userId: { [Op.in]: allowedAuthorIds },
       visibility: { [Op.in]: ["public", "followers"] },
     };
 

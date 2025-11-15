@@ -16,6 +16,11 @@ router
   .route("/sessions/:sessionId")
   .put(asyncHandler(AiChatController.updateSession));
 
+router.get(
+  "/user/:userId/messages",
+  asyncHandler(AiChatController.getAllUserMessages),
+);
+
 router
   .route("/sessions/:sessionId/messages")
   .get(asyncHandler(AiChatController.getMessages))

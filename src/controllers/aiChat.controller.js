@@ -7,6 +7,10 @@ import AiChatMessageService from "#services/aiChatMessage";
 import openaiClient from "#configs/openai";
 import ItineraryService from "#services/itinerary";
 import AiChatSession from "#models/aiChatSession";
+import User from "#models/user";
+import env from "#configs/env";
+import sequelize from "#configs/database";
+import { Op, QueryTypes } from "sequelize";
 
 const SYSTEM_PROMPT = `
 You are DTVRL's AI travel concierge embedded inside a trip planning app.
@@ -15,8 +19,9 @@ If details like budget, companions, or travel style are missing, make reasonable
 Focus only on travel-related topics and keep responses friendly, practical, and ready to copy into an itinerary.
 `;
 
-const MAX_USER_MESSAGES = 10;
-const MAX_FETCHED_MESSAGES = 40;
+const MAX_CONTEXT_USER_MESSAGES = 10;
+const MAX_FETCHED_MESSAGES = Number(env.AI_CHAT_MAX_FETCHED_MESSAGES || 40);
+const MAX_STORED_MESSAGES = Number(env.AI_CHAT_MAX_STORED_MESSAGES || 40);
 
 const serializeMessages = (messages) =>
   messages.map((message) =>
@@ -88,7 +93,7 @@ async function getConversationSlice(sessionId) {
 
   for (const record of records) {
     if (record.role === "user") {
-      if (userCount >= MAX_USER_MESSAGES) {
+      if (userCount >= MAX_CONTEXT_USER_MESSAGES) {
         break;
       }
       userCount += 1;
@@ -100,19 +105,137 @@ async function getConversationSlice(sessionId) {
 }
 
 class AiChatController {
+  static parsePagination(query) {
+    let page = Number(query.page) || 1;
+    let limit = Number(query.limit) || 50;
+
+    if (page < 1) page = 1;
+    if (limit < 1) limit = 50;
+    if (limit > 100) limit = 100;
+
+    return { page, limit };
+  }
+
+  static buildMessagesDateFilter(query) {
+    const { startDate, endDate } = query;
+    const filter = {};
+
+    if (startDate) {
+      const parsed = new Date(startDate);
+      if (!Number.isNaN(parsed.getTime())) {
+        filter[Op.gte] = parsed;
+      }
+    }
+
+    if (endDate) {
+      const parsed = new Date(endDate);
+      if (!Number.isNaN(parsed.getTime())) {
+        filter[Op.lte] = parsed;
+      }
+    }
+
+    return Object.keys(filter).length ? filter : null;
+  }
+
+  static buildMessagesWhere(query) {
+    const where = {};
+
+    const role = String(query.role || "").trim();
+    if (role && ["system", "user", "assistant"].includes(role)) {
+      where.role = role;
+    }
+
+    const dateFilter = this.buildMessagesDateFilter(query);
+    if (dateFilter) {
+      where.createdAt = dateFilter;
+    }
+
+    const search = String(query.search || "").trim();
+    if (search) {
+      where.content = { [Op.iLike]: `%${search}%` };
+    }
+
+    return where;
+  }
+
+  static buildMessagesSort(query) {
+    const requested = String(query.sortBy || "").trim();
+    const sortBy = requested === "createdAt" ? "createdAt" : "createdAt";
+    const sortOrder =
+      String(query.sortOrder || "").toUpperCase() === "DESC"
+        ? "DESC"
+        : "ASC";
+    return [[sortBy, sortOrder]];
+  }
+
+  static async pruneMessagesForUser(userId) {
+    if (!MAX_STORED_MESSAGES || MAX_STORED_MESSAGES <= 0) {
+      return;
+    }
+
+    const rows = await sequelize.query(
+      `
+        SELECT m.id
+        FROM "AiChatMessages" AS m
+        INNER JOIN "AiChatSessions" AS s ON s."id" = m."sessionId"
+        WHERE s."userId" = :userId
+        ORDER BY m."createdAt" DESC, m."id" DESC
+        OFFSET :limit
+      `,
+      {
+        replacements: { userId, limit: MAX_STORED_MESSAGES },
+        type: QueryTypes.SELECT,
+      },
+    );
+
+    if (!rows.length) {
+      return;
+    }
+
+    await AiChatMessageService.Model.destroy({
+      where: { id: rows.map((row) => row.id) },
+    });
+  }
+
   static async listSessions(req, res) {
-    const userId = requestSession.get("userId");
-    req.query.userId = userId;
+    const sessionUserId = requestSession.get("userId");
+    const payload = requestSession.get("payload");
+    const isAdmin = Boolean(payload?.isAdmin);
+
+    if (!isAdmin) {
+      if (!sessionUserId) {
+        throw new AppError({
+          status: false,
+          message: "Unauthorized",
+          httpStatus: httpStatus.UNAUTHORIZED,
+        });
+      }
+      req.query.userId = sessionUserId;
+    }
+
+    const requestedUserId = Number(req.query.userId);
 
     const customOptions = {
-      where: {
-        userId,
-      },
+      where: {},
+      include: [
+        {
+          model: User,
+          attributes: ["id", "name", "username", "email", "profile"],
+        },
+      ],
       order: [
         ["lastInteractionAt", "DESC"],
         ["id", "DESC"],
       ],
     };
+
+    if (!isAdmin || (!Number.isNaN(requestedUserId) && requestedUserId > 0)) {
+      customOptions.where.userId =
+        !Number.isNaN(requestedUserId) && requestedUserId > 0
+          ? requestedUserId
+          : sessionUserId;
+      req.query.userId = customOptions.where.userId;
+    }
 
     const options = AiChatSessionService.getOptions(req.query, customOptions);
     const data = await AiChatSessionService.get(null, req.query, options);
@@ -121,6 +244,157 @@ class AiChatController {
       res,
       data,
       "AI chat sessions fetched successfully",
+    );
+  }
+
+  static async getAllUserMessages(req, res) {
+    const { userId } = req.params;
+    const parsedUserId = Number(userId);
+
+    const sessionUserId = requestSession.get("userId");
+    const payload = requestSession.get("payload");
+    const isAdmin = Boolean(payload?.isAdmin);
+
+    if (!parsedUserId && !sessionUserId) {
+      throw new AppError({
+        status: false,
+        message: "User id is required",
+        httpStatus: httpStatus.BAD_REQUEST,
+      });
+    }
+
+    const resolvedUserId = parsedUserId || sessionUserId;
+
+    if (!isAdmin && Number(sessionUserId) !== Number(resolvedUserId)) {
+      throw new AppError({
+        status: false,
+        message: "You are not allowed to view these messages",
+        httpStatus: httpStatus.FORBIDDEN,
+      });
+    }
+
+    const { page, limit } = AiChatController.parsePagination(req.query);
+    const queryOptions = {
+      where: {},
+      include: [
+        {
+          model: AiChatSession,
+          attributes: ["id", "title", "userId", "createdAt", "lastInteractionAt"],
+          where: { userId: resolvedUserId },
+          include: [
+            {
+              model: User,
+              attributes: ["id", "name", "username", "email", "profile"],
+            },
+          ],
+        },
+      ],
+      order: [["createdAt", "ASC"]],
+    };
+
+    const { count, rows } = await AiChatMessageService.Model.findAndCountAll({
+      ...queryOptions,
+      distinct: true,
+    });
+
+    const result = rows.map((message) => {
+      const json = message.toJSON();
+      if (json.AiChatSession) {
+        json.session = json.AiChatSession;
+        delete json.AiChatSession;
+      }
+      return json;
+    });
+
+    const sortedMessages = result.sort(
+      (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
+    );
+
+    const conversations = sortedMessages.reduce((acc, message) => {
+      const sessionId = message.session?.id ?? message.sessionId;
+      if (!acc.has(sessionId)) {
+        acc.set(sessionId, {
+          session: message.session,
+          conversations: [],
+        });
+      }
+
+      const entry = acc.get(sessionId);
+      const latest = entry.conversations[entry.conversations.length - 1];
+
+      if (message.role === "user") {
+        entry.conversations.push({
+          questionId: message.id,
+          question: message.content,
+          questionCreatedAt: message.createdAt,
+          questionMetadata: message.metadata,
+          answerId: null,
+          answer: null,
+          answerCreatedAt: null,
+          answerMetadata: null,
+        });
+      } else {
+        if (!latest || latest.answer) {
+          entry.conversations.push({
+            questionId: null,
+            question: null,
+            questionCreatedAt: null,
+            questionMetadata: null,
+            answerId: message.id,
+            answer: message.content,
+            answerCreatedAt: message.createdAt,
+            answerMetadata: message.metadata,
+          });
+        } else {
+          latest.answerId = message.id;
+          latest.answer = message.content;
+          latest.answerCreatedAt = message.createdAt;
+          latest.answerMetadata = message.metadata;
+        }
+      }
+
+      return acc;
+    }, new Map());
+
+    const structuredResult = Array.from(conversations.values());
+    const flattened = structuredResult.flatMap(({ session, conversations: convo }) =>
+      convo.map((entry) => ({
+        session,
+        ...entry,
+      })),
+    );
+
+    flattened.sort((a, b) => {
+      const aDate = new Date(a.questionCreatedAt || a.answerCreatedAt || 0);
+      const bDate = new Date(b.questionCreatedAt || b.answerCreatedAt || 0);
+      return aDate - bDate;
+    });
+
+    const paginationProvided = req.query.limit !== undefined;
+    const limitNum = paginationProvided ? Number(limit) || 20 : flattened.length || 1;
+    const pageNum = paginationProvided ? Number(page) || 1 : 1;
+    const offset = (pageNum - 1) * limitNum;
+    const paginatedResult = paginationProvided
+      ? flattened.slice(offset, offset + limitNum)
+      : flattened;
+
+    sendResponse(
+      httpStatus.OK,
+      res,
+      {
+        result: paginatedResult,
+        pagination: {
+          totalItems: flattened.length,
+          totalPages: limitNum
+            ? Math.max(1, Math.ceil(flattened.length / limitNum))
+            : flattened.length > 0
+              ? 1
+              : 0,
+          currentPage: pageNum,
+          itemsPerPage: limitNum,
+        },
+      },
+      "AI chat messages fetched successfully",
     );
   }
 
@@ -167,22 +441,69 @@ class AiChatController {
 
   static async getMessages(req, res) {
     const { sessionId } = req.params;
-    const limit = Number.parseInt(req.query.limit ?? "50", 10);
-    const sessionDoc =
-      await AiChatSessionService.getUserSessionById(sessionId);
+    const payload = requestSession.get("payload");
+    const isAdmin = Boolean(payload?.isAdmin);
+    const sessionUserId = requestSession.get("userId");
 
-    const messages = await getConversationSlice(sessionDoc.id);
-    const limitedMessages =
-      Number.isNaN(limit) || limit <= 0
-        ? messages
-        : messages.slice(-limit);
+    const sessionDoc = await AiChatSessionService.getUserSessionById(
+      sessionId,
+      {
+        userId: sessionUserId,
+        allowAdmin: isAdmin,
+      },
+    );
+
+    const paginationProvided = req.query.limit !== undefined;
+    const { page, limit } = paginationProvided
+      ? AiChatController.parsePagination(req.query)
+      : { page: 1, limit: null };
+    const where = AiChatController.buildMessagesWhere(req.query);
+    where.sessionId = sessionDoc.id;
+    const order = AiChatController.buildMessagesSort(req.query);
+
+    const sessionWithUser = await AiChatSession.findByPk(sessionDoc.id, {
+      include: [
+        {
+          model: User,
+          attributes: ["id", "name", "username", "email", "profile"],
+        },
+      ],
+    });
+
+    let data;
+    if (paginationProvided) {
+      data = await AiChatMessageService.findWithPagination({
+        where,
+        page,
+        limit,
+        order,
+      });
+    } else {
+      const rows = await AiChatMessageService.Model.findAll({
+        where,
+        order,
+      });
+      data = {
+        result: rows,
+        pagination: {
+          totalItems: rows.length,
+          totalPages: 1,
+          currentPage: 1,
+          itemsPerPage: rows.length,
+        },
+      };
+    }
+
+    const serialized = serializeMessages(data.result);
 
     sendResponse(
       httpStatus.OK,
       res,
       {
-        session: sessionDoc,
-        messages: serializeMessages(limitedMessages),
+        session: sessionWithUser ?? sessionDoc,
+        result: serialized,
+        messages: serialized,
+        pagination: data.pagination,
       },
       "AI chat messages fetched successfully",
     );
@@ -209,6 +530,7 @@ class AiChatController {
       content: userMessage,
     });
     await AiChatSessionService.touchSession(sessionDoc.id);
+    await AiChatController.pruneMessagesForUser(sessionDoc.userId);
 
     const orderedHistory = (
       await getConversationSlice(sessionDoc.id)
@@ -273,6 +595,7 @@ class AiChatController {
     });
 
     await AiChatSessionService.touchSession(sessionDoc.id);
+    await AiChatController.pruneMessagesForUser(sessionDoc.userId);
 
     let responseMessages = serializeMessages(
       await getConversationSlice(sessionDoc.id),

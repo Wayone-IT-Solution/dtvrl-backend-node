@@ -21,6 +21,8 @@ import ItineraryLikeService from "#services/itineraryLike";
 import LocationReviewService from "#services/locationReview";
 import ItineraryCommentService from "#services/itineraryComment";
 import ItineraryShareListService from "#services/itineraryShareList";
+import AiChatMessageService from "#services/aiChatMessage";
+import AiChatSession from "#models/aiChatSession";
 
 class AdminController extends BaseController {
   static Service = AdminService;
@@ -92,6 +94,40 @@ class AdminController extends BaseController {
     const options = ChatGroupService.getOptions(req.query, customOptions);
     const data = await ChatGroupService.get(id, req.query, options);
     sendResponse(httpStatus.OK, res, data);
+  }
+
+  static async getAiChatMessages(req, res) {
+    const { id } = req.params;
+    const customOptions = {
+      include: [
+        {
+          model: AiChatSession,
+          attributes: [
+            "id",
+            "title",
+            "userId",
+            "createdAt",
+            "lastInteractionAt",
+          ],
+          include: [
+            {
+              model: UserService.Model,
+              attributes: ["id", "name", "username", "email", "profile"],
+            },
+          ],
+        },
+      ],
+      order: [["createdAt", "DESC"]],
+    };
+
+    const options = AiChatMessageService.getOptions(req.query, customOptions);
+    const data = await AiChatMessageService.get(id, req.query, options);
+    sendResponse(
+      httpStatus.OK,
+      res,
+      data,
+      "AI chat messages fetched successfully",
+    );
   }
 
   static async getUsers(req, res, next) {

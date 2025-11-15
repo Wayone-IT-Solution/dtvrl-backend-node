@@ -21,11 +21,14 @@ class ItineraryController extends BaseController {
   }
 
   static async get(req, res, next) {
-    const userId = session.get("userId");
-    const { id } = req.params;
-    req.query.userId = userId;
-
     const currentUserId = session.get("userId");
+    const payload = session.get("payload");
+    const isAdmin = Boolean(payload?.isAdmin);
+    const { id } = req.params;
+
+    if (!isAdmin) {
+      req.query.userId = currentUserId;
+    }
 
     const customOptions = {
       include: [
@@ -301,6 +304,18 @@ class ItineraryController extends BaseController {
 
     if (req.query.search && req.query.searchIn) {
       req.query.public = true;
+    }
+
+    if (!isAdmin || req.query.userId) {
+      const resolvedUserId =
+        req.query.userId && !Number.isNaN(Number(req.query.userId))
+          ? Number(req.query.userId)
+          : currentUserId;
+      customOptions.where = {
+        ...(customOptions.where || {}),
+        userId: resolvedUserId,
+      };
+      req.query.userId = resolvedUserId;
     }
 
     const options = this.Service.getOptions(req.query, customOptions);
