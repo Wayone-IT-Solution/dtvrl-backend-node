@@ -19,6 +19,7 @@ class PostCommentController extends BaseController {
         include: [
           {
             model: User,
+            as: "commentUser",
             attributes: ["id", "name", "profile", "username"],
           },
         ],
@@ -32,6 +33,7 @@ class PostCommentController extends BaseController {
       include: [
         {
           model: User,
+          as: "commentUser",
           attributes: ["id", "name", "username", "profile", "email"],
         },
       ],

@@ -1,7 +1,8 @@
-import Post from "#models/post";
-import User from "#models/user";
+// src/models/postLike.js
 import BaseModel from "#models/base";
 import { DataTypes } from "sequelize";
+import User from "#models/user";
+import Post from "#models/post"; // IMPORTANT
 
 class PostLike extends BaseModel {}
 
@@ -33,11 +34,7 @@ PostLike.initialize(
         fields: ["postId", "userId"],
       },
     ],
-  },
+  }
 );
-
-Post.hasMany(PostLike, {
-  foreignKey: "postId",
-});
 
 export default PostLike;

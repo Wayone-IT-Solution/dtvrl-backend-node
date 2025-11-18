@@ -1,22 +1,82 @@
+// src/controllers/post.controller.js
 import httpStatus from "http-status";
 import AppError from "#utils/appError";
 import BaseController from "#controllers/base";
+
+import { Post } from "../models/index.js";
+
+import User from "../models/user.model.js";
+import UserFollow from "../models/userFollow.model.js";
+import PostComment from "../models/postComment.model.js";
+import PostLike from "../models/postLike.model.js";
+import PostShare from "../models/postShare.model.js";
+import PostView from "../models/postView.model.js";
+import PostWasHere from "../models/postWasHere.model.js";
+
 import PostService from "#services/post";
-import PostWasHere from "#models/postWasHere";
-import User from "#models/user";
-import UserFollow from "#models/userFollow";
+import UserBlockService from "#services/userBlock";
+
 import { session } from "#middlewares/requestSession";
 import { sendResponse } from "#utils/response";
 import { Op } from "sequelize";
-import UserBlockService from "#services/userBlock";
 
 class PostController extends BaseController {
   static Service = PostService;
 
   static allowedVisibilities = new Set(["public", "followers", "private"]);
+  static allowedStatuses = new Set(["active", "suspended", "inactive"]);
 
-  // ---------- helpers ----------
+  // ✔ Includes for all post data
+  static fullIncludes = [
+    {
+      model: User,
+      as: "user",
+      attributes: ["id", "name", "username", "profile"],
+    },
+    {
+      model: PostComment,
+      as: "comments",
+      include: [
+        {
+          model: User,
+          as: "commentUser",
+          attributes: ["id", "username", "profile"],
+        },
+      ],
+    },
+    {
+      model: PostLike,
+      as: "likes",
+      include: [
+        {
+          model: User,
+          as: "likeUser",
+          attributes: ["id", "username", "profile"],
+        },
+      ],
+    },
+    {
+      model: PostShare,
+      as: "shares",
+    },
+    {
+      model: PostView,
+      as: "views",
+    },
+    {
+      model: PostWasHere,
+      as: "wasHere",
+      include: [
+        {
+          model: User,
+          as: "wasHereUser",
+          attributes: ["id", "username", "profile"],
+        },
+      ],
+    },
+  ];
 
+  // ----------------- helpers -----------------
   static parseNumber(value) {
     if (value === undefined || value === null || value === "") return null;
     const parsed = Number(value);
@@ -27,11 +87,9 @@ class PostController extends BaseController {
     if (!value) return [];
     try {
       const parsed = JSON.parse(value);
-      if (!Array.isArray(parsed)) {
-        throw new Error("taggedUserIds must be an array");
-      }
+      if (!Array.isArray(parsed)) throw new Error();
       return parsed;
-    } catch (error) {
+    } catch {
       throw new AppError({
         message: "Invalid taggedUserIds format",
         httpStatus: httpStatus.BAD_REQUEST,
@@ -42,230 +100,109 @@ class PostController extends BaseController {
   static parsePagination(query) {
     let page = Number(query.page) || 1;
     let limit = Number(query.limit) || 10;
-
     if (page < 1) page = 1;
     if (limit < 1) limit = 10;
-
     return { page, limit };
-  }
-
-  static buildDateRangeFilter(query) {
-    const { startDate, endDate } = query;
-    const filter = {};
-
-    if (startDate) {
-      const parsed = new Date(startDate);
-      if (!Number.isNaN(parsed.getTime())) {
-        filter[Op.gte] = parsed;
-      }
-    }
-
-    if (endDate) {
-      const parsed = new Date(endDate);
-      if (!Number.isNaN(parsed.getTime())) {
-        filter[Op.lte] = parsed;
-      }
-    }
-
-    return Object.keys(filter).length ? filter : null;
-  }
-
-  static buildPostListWhere(query) {
-    const where = {};
-    const defaultVisibility = "public";
-
-    if (!query.visibility) {
-      where.visibility = defaultVisibility;
-    } else {
-      const vis = String(query.visibility)
-        .split(",")
-        .map((value) => value.trim())
-        .filter(Boolean);
-
-      if (
-        vis.length &&
-        !(vis.length === 1 && vis[0].toLowerCase() === "all")
-      ) {
-        where.visibility =
-          vis.length === 1 ? vis[0] : { [Op.in]: vis };
-      }
-    }
-
-    if (query.userId) {
-      const id = Number(query.userId);
-      if (!Number.isNaN(id)) {
-        where.userId = id;
-      }
-    }
-
-    const dateFilter = this.buildDateRangeFilter(query);
-    if (dateFilter) {
-      where.createdAt = dateFilter;
-    }
-
-    const search = String(query.search || "").trim();
-    if (search) {
-      where.caption = {
-        [Op.iLike]: `%${search}%`,
-      };
-    }
-
-    return where;
-  }
-
-  static buildPostSort(query) {
-    const allowed = new Set(["createdAt", "wasHereCount"]);
-    const requested = String(query.sortBy || "").trim();
-    const sortBy = allowed.has(requested) ? requested : "createdAt";
-
-    const order =
-      String(query.sortOrder || "").toUpperCase() === "ASC"
-        ? "ASC"
-        : "DESC";
-
-    return [[sortBy, order]];
-  }
-
-  static parseBounds(query) {
-    const neLat = Number(query.ne_lat ?? query.neLat);
-    const neLng = Number(query.ne_lng ?? query.neLng);
-    const swLat = Number(query.sw_lat ?? query.swLat);
-    const swLng = Number(query.sw_lng ?? query.swLng);
-
-    if (
-      [neLat, neLng, swLat, swLng].some(
-        (val) => val === undefined || Number.isNaN(val),
-      )
-    ) {
-      throw new AppError({
-        message:
-          "Invalid bounds. Provide ne_lat, ne_lng, sw_lat and sw_lng query params",
-        httpStatus: httpStatus.BAD_REQUEST,
-      });
-    }
-
-    return {
-      northEast: { lat: neLat, lng: neLng },
-      southWest: { lat: swLat, lng: swLng },
-    };
   }
 
   static getCurrentUserId(req) {
     return (
-      session.get("userId") ??
-      req.user?.userId ??
-      session.get("payload")?.userId ??
-      null
+      session.get("userId") ?? req.user?.userId ?? session.get("payload")?.userId ?? null
     );
   }
 
-  static async isFollower(viewerId, ownerId, blockedIds = null) {
-    if (!viewerId) return false;
-
-    let blockedList = blockedIds ?? null;
-    if (blockedList === null) {
-      blockedList = await UserBlockService.getBlockedUserIdsFor(viewerId);
-    }
-    blockedList = blockedList ?? [];
-
-    if (blockedList.includes(ownerId)) {
-      return false;
-    }
-
-    const follow = await UserFollow.findOne({
-      where: {
-        userId: viewerId,
-        otherId: ownerId,
-      },
-    });
-
-    return !!follow;
+  static isAdmin(req) {
+    return !!(session.get("isAdmin") ?? req.user?.isAdmin ?? session.get("payload")?.isAdmin);
   }
 
-  static async canViewPost(post, viewerId) {
-    const owner =
-      typeof post.getUser === "function"
-        ? await post.getUser()
-        : await User.findByPk(post.userId);
+  /**
+   * Attach count fields to a post or array of posts
+   * Mutates the post object(s) to add: commentsCount, likesCount, sharesCount, viewsCount, wasHereCount
+   */
+  static attachPostCounts(post) {
+    if (!post) return post;
+    if (Array.isArray(post)) {
+      return post.map((p) => this.attachPostCounts(p));
+    }
+    // Convert to plain object if needed
+    const data = post.toJSON ? post.toJSON() : post;
+    data.commentsCount = Array.isArray(data.comments) ? data.comments.length : 0;
+    data.likesCount = Array.isArray(data.likes) ? data.likes.length : 0;
+    data.sharesCount = Array.isArray(data.shares) ? data.shares.length : 0;
+    data.viewsCount = Array.isArray(data.views) ? data.views.length : 0;
+    data.wasHereCount = Array.isArray(data.wasHere) ? data.wasHere.length : 0;
+    return data;
+  }
 
+  // ----------------- permission (status + visibility) ------------
+  static async canViewPost(post, viewerId, req = null) {
+    const isAdmin = req ? this.isAdmin(req) : false;
+
+    // suspended -> only admin
+    if (post.status === "suspended") return isAdmin;
+
+    // inactive -> admin or owner
+    if (post.status === "inactive") {
+      if (isAdmin) return true;
+      return viewerId && Number(viewerId) === Number(post.userId);
+    }
+
+    // active -> apply existing visibility rules
+    const owner = await User.findByPk(post.userId);
     if (!owner) return false;
 
     const isOwner = viewerId && Number(viewerId) === Number(post.userId);
     if (isOwner) return true;
 
-    let blockedIds = [];
-    if (viewerId) {
-      blockedIds = await UserBlockService.getBlockedUserIdsFor(viewerId);
-      if (blockedIds.includes(owner.id)) {
-        return false;
-      }
-    }
+    const blocked = viewerId ? await UserBlockService.getBlockedUserIdsFor(viewerId) : [];
+    if (blocked.includes(owner.id)) return false;
 
-    const isAccountPrivate = !!owner.isPrivate;
-    const isFollower = await this.isFollower(viewerId, owner.id, blockedIds);
+    const isFollower = await UserFollow.findOne({
+      where: { userId: viewerId, otherId: owner.id },
+    });
 
-    if (post.visibility === "private") {
-      return false;
-    }
+    if (post.visibility === "private") return false;
+    if (post.visibility === "followers") return !!isFollower;
 
-    if (post.visibility === "followers") {
-      return isFollower;
-    }
-
-    if (post.visibility === "public") {
-      if (!isAccountPrivate) return true;
-      return isFollower;
-    }
-
-    return false;
+    return owner.isPrivate ? !!isFollower : true;
   }
 
-  // ---------- single post ----------
-
+  // ----------------- SINGLE POST -----------------
   static async get(req, res) {
     const { id } = req.params;
-    if (!id) {
-      throw new AppError({
-        message: "Post id is required",
-        httpStatus: httpStatus.BAD_REQUEST,
-      });
-    }
 
-    const post = await this.Service.getDocById(id);
-    if (!post) {
+    const post = await Post.findByPk(id, {
+      include: this.fullIncludes,
+    });
+
+    if (!post)
       throw new AppError({
         message: "Post not found",
         httpStatus: httpStatus.NOT_FOUND,
       });
-    }
 
-    const currentUserId = this.getCurrentUserId(req);
-    const canView = await this.canViewPost(post, currentUserId);
-
-    if (!canView) {
-      throw new AppError({
-        message: "You are not allowed to view this post",
-        httpStatus: httpStatus.FORBIDDEN,
-      });
-    }
-
-    sendResponse(httpStatus.OK, res, post, "Post fetched successfully");
-  }
-
-  // ---------- create ----------
-
-  static async create(req, res) {
     const userId = this.getCurrentUserId(req);
 
-    if (!userId) {
+    if (!(await this.canViewPost(post, userId, req)))
+      throw new AppError({
+        message: "Not allowed to view this post",
+        httpStatus: httpStatus.FORBIDDEN,
+      });
+
+    const postWithCounts = this.attachPostCounts(post);
+    sendResponse(httpStatus.OK, res, postWithCounts, "Post fetched");
+  }
+
+  // ----------------- CREATE POST -----------------
+  static async create(req, res) {
+    const userId = this.getCurrentUserId(req);
+    if (!userId)
       throw new AppError({
         message: "Unauthorized",
         httpStatus: httpStatus.UNAUTHORIZED,
       });
-    }
 
-    const files = req.files ?? [];
-    const hasImageFile = files.some((file) => file.fieldname === "image");
+    const hasFile = req.files?.some((f) => f.fieldname === "image");
     const bodyImage = req.body.image;
 
     const payload = {
@@ -280,379 +217,236 @@ class PostController extends BaseController {
       visibility: this.allowedVisibilities.has(req.body.visibility)
         ? req.body.visibility
         : "public",
+      // status defaults to 'active'
     };
 
-    if (bodyImage) {
-      payload.image = bodyImage;
-    } else if (!hasImageFile) {
+    if (bodyImage) payload.image = bodyImage;
+    else if (!hasFile)
       throw new AppError({
         message: "Image is required",
-        httpStatus: httpStatus.BAD_REQUEST,
+        httpStatus: 400,
       });
-    }
 
     const post = await this.Service.create(payload);
-    sendResponse(httpStatus.CREATED, res, post, "Post created successfully");
+
+    sendResponse(httpStatus.CREATED, res, post, "Post created");
   }
 
-  // ---------- explore feed ----------
-
+  // ----------------- EXPLORE FEED -----------------
   static async getAll(req, res) {
     const { page, limit } = this.parsePagination(req.query);
-    const where = this.buildPostListWhere(req.query);
-    const order = this.buildPostSort(req.query);
 
-    const include = [];
-    const includePrivateUsers =
-      String(req.query.includePrivateUsers || "").toLowerCase() === "true";
-
-    const userInclude = {
-      model: User,
-      attributes: ["id", "name", "username", "email", "profile", "isPrivate"],
-    };
-
-    if (!includePrivateUsers) {
-      userInclude.where = { isPrivate: false };
-    }
-
-    include.push(userInclude);
+    // only active posts in public explore
+    const where = { status: "active" };
 
     const data = await this.Service.findWithPagination({
       where,
       page,
       limit,
-      include,
-      order,
+      include: this.fullIncludes,
     });
 
-    sendResponse(httpStatus.OK, res, data, "Posts fetched successfully");
+    if (data && data.result) {
+      data.result = this.attachPostCounts(data.result);
+    }
+    sendResponse(httpStatus.OK, res, data, "Posts fetched");
   }
 
+  // ----------------- FOLLOWER FEED -----------------
   static async getFollowerFeed(req, res) {
-    const currentUserId = this.getCurrentUserId(req);
-    if (!currentUserId) {
-      throw new AppError({
-        message: "Unauthorized",
-        httpStatus: httpStatus.UNAUTHORIZED,
-      });
-    }
+    const userId = this.getCurrentUserId(req);
+    if (!userId)
+      throw new AppError({ message: "Unauthorized", httpStatus: httpStatus.UNAUTHORIZED });
 
     const { page, limit } = this.parsePagination(req.query);
 
     const data = await this.Service.getFollowerFeed({
-      userId: currentUserId,
+      userId,
       page,
       limit,
+      include: this.fullIncludes,
+      where: { status: "active" },
     });
 
-    sendResponse(httpStatus.OK, res, data, "Follower feed fetched successfully");
+    if (data && data.result) {
+      data.result = this.attachPostCounts(data.result);
+    }
+    sendResponse(httpStatus.OK, res, data, "Feed fetched");
   }
 
+  // ----------------- GET BY USER -----------------
   static async getByUserId(req, res) {
     const { userId } = req.params;
-    const userIdNum = Number(userId);
-    if (!userId || Number.isNaN(userIdNum)) {
-      throw new AppError({
-        message: "Invalid userId",
-        httpStatus: httpStatus.BAD_REQUEST,
-      });
-    }
+    const currentId = this.getCurrentUserId(req);
 
     const { page, limit } = this.parsePagination(req.query);
-    const currentUserId = this.getCurrentUserId(req);
 
-    const owner = await User.findByPk(userIdNum);
-    if (!owner) {
-      throw new AppError({
-        message: "User not found",
-        httpStatus: httpStatus.NOT_FOUND,
-      });
-    }
+    const isOwner = currentId && Number(currentId) === Number(userId);
+    const isAdmin = this.isAdmin(req);
 
-    const isOwner =
-      currentUserId && Number(currentUserId) === Number(userIdNum);
-
-    let blockedIds = [];
-    if (!isOwner && currentUserId) {
-      blockedIds = await UserBlockService.getBlockedUserIdsFor(currentUserId);
-      if (blockedIds.includes(owner.id)) {
-        throw new AppError({
-          message: "You are not allowed to view this user's posts",
-          httpStatus: httpStatus.FORBIDDEN,
-        });
-      }
-    }
-
-    const isAccountPrivate = !!owner.isPrivate;
-    const isFollower = await this.isFollower(currentUserId, owner.id, blockedIds);
-
-    let visibilityFilter;
-
-    if (isOwner) {
-      visibilityFilter = undefined;
-    } else if (isAccountPrivate) {
-      if (!isFollower) {
-        throw new AppError({
-          message: "You are not allowed to view this user's posts",
-          httpStatus: httpStatus.FORBIDDEN,
-        });
-      }
-      visibilityFilter = ["public", "followers"];
-    } else {
-      visibilityFilter = isFollower ? ["public", "followers"] : ["public"];
-    }
+    const where = isOwner || isAdmin ? undefined : { status: "active" };
 
     const data = await this.Service.getByUserIdWithPagination({
-      userId: userIdNum,
+      userId,
       page,
       limit,
-      visibility: visibilityFilter,
+      include: this.fullIncludes,
+      where,
     });
 
-    sendResponse(httpStatus.OK, res, data, "User posts fetched successfully");
+    if (data && data.result) {
+      data.result = this.attachPostCounts(data.result);
+    }
+    sendResponse(httpStatus.OK, res, data, "User posts fetched");
   }
 
+  // ----------------- PRIVATE -----------------
   static async getAllPrivate(req, res) {
+    const userId = this.getCurrentUserId(req);
     const { page, limit } = this.parsePagination(req.query);
-    const currentUserId = this.getCurrentUserId(req);
-
-    if (!currentUserId) {
-      throw new AppError({
-        message: "Unauthorized",
-        httpStatus: httpStatus.UNAUTHORIZED,
-      });
-    }
 
     const data = await this.Service.getByVisibilityWithPagination({
       visibility: "private",
-      userId: currentUserId,
+      userId,
       page,
       limit,
+      include: this.fullIncludes,
     });
 
-    sendResponse(httpStatus.OK, res, data, "Private posts fetched successfully");
+    if (data && data.result) {
+      data.result = this.attachPostCounts(data.result);
+    }
+    sendResponse(httpStatus.OK, res, data, "Private posts fetched");
   }
 
+  // ----------------- FOLLOWERS ONLY -----------------
   static async getAllFollowers(req, res) {
+    const userId = this.getCurrentUserId(req);
     const { page, limit } = this.parsePagination(req.query);
-    const currentUserId = this.getCurrentUserId(req);
-
-    if (!currentUserId) {
-      throw new AppError({
-        message: "Unauthorized",
-        httpStatus: httpStatus.UNAUTHORIZED,
-      });
-    }
 
     const data = await this.Service.getByVisibilityWithPagination({
       visibility: "followers",
-      userId: currentUserId,
+      userId,
       page,
       limit,
+      include: this.fullIncludes,
+      where: { status: "active" },
     });
 
-    sendResponse(
-      httpStatus.OK,
-      res,
-      data,
-      "Followers-only posts fetched successfully",
-    );
+    if (data && data.result) {
+      data.result = this.attachPostCounts(data.result);
+    }
+    sendResponse(httpStatus.OK, res, data, "Followers posts fetched");
   }
 
+  // ----------------- UPDATE -----------------
   static async updateInfo(req, res) {
     const { id } = req.params;
-    if (!id) {
-      throw new AppError({
-        message: "Post id is required",
-        httpStatus: httpStatus.BAD_REQUEST,
-      });
-    }
+    const userId = this.getCurrentUserId(req);
 
-    const currentUserId = this.getCurrentUserId(req);
-    if (!currentUserId) {
-      throw new AppError({
-        message: "Unauthorized",
-        httpStatus: httpStatus.UNAUTHORIZED,
-      });
-    }
+    const post = await Post.findByPk(id);
+    if (!post) throw new AppError({ message: "Not found", httpStatus: 404 });
 
-    const post = await this.Service.getDocById(id);
-    if (!post) {
-      throw new AppError({
-        message: "Post not found",
-        httpStatus: httpStatus.NOT_FOUND,
-      });
-    }
+    const isAdmin = this.isAdmin(req);
+    if (post.userId !== userId && !isAdmin)
+      throw new AppError({ message: "Forbidden", httpStatus: 403 });
 
-    if (Number(post.userId) !== Number(currentUserId)) {
-      throw new AppError({
-        message: "You are not allowed to update this post",
-        httpStatus: httpStatus.FORBIDDEN,
-      });
-    }
+    if (!isAdmin && post.status !== "active")
+      throw new AppError({ message: "You cannot edit a suspended or inactive post", httpStatus: 403 });
 
-    const updatePayload = {};
-    const {
-      caption,
-      musicId,
-      filterId,
-      locationLat,
-      locationLng,
-      locationName,
-      taggedUserIds,
-      visibility,
-    } = req.body;
+    const updateData = {};
 
-    if (caption !== undefined) updatePayload.caption = caption;
-    if (musicId !== undefined) updatePayload.musicId = musicId;
-    if (filterId !== undefined) updatePayload.filterId = filterId;
-    if (locationLat !== undefined)
-      updatePayload.locationLat = this.parseNumber(locationLat);
-    if (locationLng !== undefined)
-      updatePayload.locationLng = this.parseNumber(locationLng);
-    if (locationName !== undefined) updatePayload.locationName = locationName;
-    if (taggedUserIds !== undefined)
-      updatePayload.taggedUserIds = this.parseTaggedUserIds(taggedUserIds);
-    if (visibility !== undefined) {
-      if (!this.allowedVisibilities.has(visibility)) {
-        throw new AppError({
-          message: "Invalid visibility value",
-          httpStatus: httpStatus.BAD_REQUEST,
-        });
-      }
-      updatePayload.visibility = visibility;
-    }
+    ["caption", "musicId", "filterId", "locationName"].forEach((k) => {
+      if (req.body[k] !== undefined) updateData[k] = req.body[k];
+    });
 
-    const updatedPost = await this.Service.updateDocById(id, updatePayload);
+    if (req.body.locationLat) updateData.locationLat = this.parseNumber(req.body.locationLat);
+    if (req.body.locationLng) updateData.locationLng = this.parseNumber(req.body.locationLng);
+    if (req.body.taggedUserIds) updateData.taggedUserIds = this.parseTaggedUserIds(req.body.taggedUserIds);
 
-    sendResponse(httpStatus.OK, res, updatedPost, "Post updated successfully");
+    if (req.body.visibility && this.allowedVisibilities.has(req.body.visibility))
+      updateData.visibility = req.body.visibility;
+
+    await this.Service.updateDocById(id, updateData);
+
+    sendResponse(httpStatus.OK, res, null, "Updated");
   }
 
+  // ----------------- DELETE -----------------
   static async delete(req, res) {
     const { id } = req.params;
-    if (!id) {
-      throw new AppError({
-        message: "Post id is required",
-        httpStatus: httpStatus.BAD_REQUEST,
-      });
+    const userId = this.getCurrentUserId(req);
+
+    const post = await Post.findByPk(id);
+
+    if (!post) throw new AppError({ message: "Not found", httpStatus: 404 });
+
+    const isAdmin = this.isAdmin(req);
+    if (post.userId !== userId && !isAdmin) throw new AppError({ message: "Forbidden", httpStatus: 403 });
+
+    if (isAdmin) {
+      await this.Service.deleteDocById(id);
+    } else {
+      await this.Service.updateDocById(id, { status: "inactive" });
     }
 
-    const currentUserId = this.getCurrentUserId(req);
-    if (!currentUserId) {
-      throw new AppError({
-        message: "Unauthorized",
-        httpStatus: httpStatus.UNAUTHORIZED,
-      });
-    }
-
-    const post = await this.Service.getDocById(id);
-    if (!post) {
-      throw new AppError({
-        message: "Post not found",
-        httpStatus: httpStatus.NOT_FOUND,
-      });
-    }
-
-    if (Number(post.userId) !== Number(currentUserId)) {
-      throw new AppError({
-        message: "You are not allowed to delete this post",
-        httpStatus: httpStatus.FORBIDDEN,
-      });
-    }
-
-    await this.Service.deleteDocById(id);
-    sendResponse(httpStatus.OK, res, null, "Post deleted successfully");
+    sendResponse(httpStatus.OK, res, null, "Deleted");
   }
 
+  // ----------------- WAS HERE -----------------
   static async toggleWasHere(req, res) {
     const { id } = req.params;
-    const postId = Number(id);
-    if (!postId) {
-      throw new AppError({
-        message: "Post id is required",
-        httpStatus: httpStatus.BAD_REQUEST,
-      });
-    }
+    const userId = this.getCurrentUserId(req);
 
-    const currentUserId = this.getCurrentUserId(req);
-    if (!currentUserId) {
-      throw new AppError({
-        message: "Unauthorized",
-        httpStatus: httpStatus.UNAUTHORIZED,
-      });
-    }
+    const post = await Post.findByPk(id);
+    if (!post) throw new AppError({ message: "Not found", httpStatus: 404 });
 
-    const post = await this.Service.getDocById(postId);
-    if (!post) {
-      throw new AppError({
-        message: "Post not found",
-        httpStatus: httpStatus.NOT_FOUND,
-      });
-    }
-
-    const canView = await this.canViewPost(post, currentUserId);
-    if (!canView) {
-      throw new AppError({
-        message: "You are not allowed to interact with this post",
-        httpStatus: httpStatus.FORBIDDEN,
-      });
-    }
+    if (!(await this.canViewPost(post, userId, req))) throw new AppError({ message: "Forbidden", httpStatus: 403 });
 
     const existing = await PostWasHere.findOne({
-      where: { userId: currentUserId, postId },
+      where: { postId: id, userId },
     });
 
     let userHasMarked = false;
 
-    if (existing) {
-      await existing.destroy();
-    } else {
-      await PostWasHere.create({ userId: currentUserId, postId });
+    if (existing) await existing.destroy();
+    else {
+      await PostWasHere.create({ postId: id, userId });
       userHasMarked = true;
     }
 
-    const wasHereCount = await PostWasHere.count({ where: { postId } });
-    post.wasHereCount = wasHereCount;
+    const count = await PostWasHere.count({ where: { postId: id } });
+
+    post.wasHereCount = count;
     await post.save();
 
-    sendResponse(
-      httpStatus.OK,
-      res,
-      { postId, wasHereCount, userHasMarked },
-      "Was here updated successfully",
-    );
+    sendResponse(httpStatus.OK, res, { count, userHasMarked }, "Updated");
   }
 
+  // ----------------- HEATMAP -----------------
   static async getHeatmap(req, res) {
-    const bounds = this.parseBounds(req.query);
+    // accept either structured bounds or flat query params
+    const bounds = req.query;
     const bucketSizeParam = Number(req.query.bucketSize);
-    const bucketSize =
-      !Number.isNaN(bucketSizeParam) && bucketSizeParam > 0
-        ? bucketSizeParam
-        : 0.5;
+    const bucketSize = !Number.isNaN(bucketSizeParam) && bucketSizeParam > 0 ? bucketSizeParam : 0.5;
 
     const data = await this.Service.getHeatmapData({
       bounds,
       bucketSize,
     });
 
-    sendResponse(httpStatus.OK, res, data, "Heatmap data fetched successfully");
+    sendResponse(httpStatus.OK, res, data, "Heatmap fetched");
   }
 
+  // ----------------- NEARBY -----------------
   static async getNearby(req, res) {
     const lat = Number(req.query.lat);
     const lng = Number(req.query.lng);
     const radiusParam = Number(req.query.radius);
 
-    if ([lat, lng].some((val) => Number.isNaN(val))) {
-      throw new AppError({
-        message: "lat and lng query params are required",
-        httpStatus: httpStatus.BAD_REQUEST,
-      });
-    }
+    if ([lat, lng].some((v) => Number.isNaN(v))) throw new AppError({ message: "lat/lng required", httpStatus: 400 });
 
-    const radius =
-      !Number.isNaN(radiusParam) && radiusParam > 0 ? radiusParam : 50;
+    const radius = !Number.isNaN(radiusParam) && radiusParam > 0 ? radiusParam : 50;
     const { page, limit } = this.parsePagination(req.query);
 
     const data = await this.Service.getNearbyPosts({
@@ -661,9 +455,13 @@ class PostController extends BaseController {
       radius,
       page,
       limit,
+      include: this.fullIncludes,
     });
 
-    sendResponse(httpStatus.OK, res, data, "Nearby posts fetched successfully");
+    if (data && data.result) {
+      data.result = this.attachPostCounts(data.result);
+    }
+    sendResponse(httpStatus.OK, res, data, "Nearby fetched");
   }
 }
 

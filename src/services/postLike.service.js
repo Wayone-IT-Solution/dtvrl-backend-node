@@ -1,4 +1,6 @@
+// src/services/postLike.js
 import PostLike from "#models/postLike";
+import Post  from "../models/index.js"; // if using index.js export
 import UserService from "#services/user";
 import BaseService from "#services/base";
 import PostService from "#services/post";
@@ -11,87 +13,62 @@ class PostLikeService extends BaseService {
   static async create(data) {
     const { postId, userId } = data;
 
-    const postData = PostService.getDocById(postId, {
+    // get post and creator
+    const post = await PostService.Model.findByPk(postId, {
       include: [
         {
           model: UserService.Model,
-          attributes: ["id", "firebaseToken", "name"], // Added name for notification
+          as: "user",
+          attributes: ["id", "firebaseToken", "name", "username"],
         },
       ],
     });
 
-    const postLikeData = super.create(data);
-    const postCreatorData = UserService.getDocById(userId);
+    if (!post) throw new Error("Post not found");
 
-    const [post, postLike, postCreator] = await Promise.all([
-      postData,
-      postLikeData,
-      postCreatorData,
-    ]);
+    const postCreator = await UserService.getDocById(userId);
 
-    // Firebase notification setup
-    const notification = {
-      title: `New like on your post`,
-      body: `${postCreator.name} just liked your post`,
-    };
+    const postLike = await super.create(data);
 
-    const tokenData = {
-      notification,
-      data: {
-        type: "POST_LIKE",
-        id: String(postId),
-        userId: String(userId),
-        postId: String(postId),
-      },
-    };
+    // Do NOT notify if user likes their own post
+    if (post.user.id !== userId) {
+      const firebaseToken = post.user.firebaseToken;
 
-    const firebaseToken = post.User.firebaseToken;
+      const notification = {
+        title: `New Like`,
+        body: `${postCreator.name} liked your post`,
+      };
 
-    // Only notify if someone else liked the post (not self-like)
-    if (Number(userId) !== post.userId) {
-      // Create database notification record
-      const notificationData = {
+      const payload = {
+        notification,
+        data: {
+          type: "POST_LIKE",
+          postId: String(postId),
+          userId: String(userId),
+        },
+      };
+
+      // DB notification
+      await NotificationService.Model.create({
         actorId: userId,
-        recipientId: post.userId,
+        recipientId: post.user.id,
         type: "POST_LIKE",
         status: "UNREAD",
         title: `${postCreator.username} liked your post`,
-        message: post.caption
-          ? `"${post.caption.slice(0, 50)}${post.caption.length > 50 ? "..." : ""}}"`
-          : null,
+        message: post.caption ? post.caption.slice(0, 40) : "",
         entityId: postId,
-        scheduledFor: null,
-        readAt: null,
-        metaDate: {
-          id: postId,
-        },
-        expiresAt: null,
-      };
+      });
 
-      // Create notification in database and send Firebase notification
-      const promises = [NotificationService.Model.create(notificationData)];
-
-      // Only send Firebase notification if user has a token
+      // Firebase notification (if exists)
       if (firebaseToken) {
-        promises.push(
-          sendNewPostNotification([firebaseToken], tokenData)
-            .then((result) => {
-              return result;
-            })
-            .catch((error) => {
-              console.error("Firebase notification failed:", error);
-              throw error;
-            }),
+        sendNewPostNotification([firebaseToken], payload).catch((e) =>
+          console.error("FCM error:", e)
         );
       }
-
-      await Promise.allSettled(promises);
     }
 
     return postLike;
   }
-  // FIX: like updation has to be fixed
-  static async deleteDoc(userId) {}
 }
 
 export default PostLikeService;

@@ -1,41 +1,40 @@
-import User from "#models/user";
-import Post from "#models/post";
 import BaseModel from "#models/base";
 import { DataTypes } from "sequelize";
+import User from "#models/user";
+import Post from "#models/post";
 
 class PostComment extends BaseModel {}
 
-PostComment.initialize({
-  comment: {
-    type: DataTypes.TEXT,
-    allowNull: false,
-  },
-  userId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: User,
-      key: User.primaryKeyAttribute,
+PostComment.initialize(
+  {
+    comment: {
+      type: DataTypes.TEXT,
+      allowNull: false,
     },
-    onDelete: "CASCADE",
-  },
-  postId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: Post,
-      key: Post.primaryKeyAttribute,
+    userId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: User,
+        key: User.primaryKeyAttribute,
+      },
+      onDelete: "CASCADE",
     },
-    onDelete: "CASCADE",
+    postId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: "Posts",
+        key: "id",
+      },
+      onDelete: "CASCADE",
+    },
   },
-});
-
-Post.hasMany(PostComment, {
-  foreignKey: "postId",
-});
-
-PostComment.belongsTo(User, {
-  foreignKey: "userId",
-});
+  {
+    tableName: "PostComments",
+    modelName: "PostComment",
+    indexes: [{ fields: ["postId"] }],
+  }
+);
 
 export default PostComment;

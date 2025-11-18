@@ -14,57 +14,71 @@ Reel.initialize({
     },
     onDelete: "CASCADE",
   },
+
   videoUrl: {
     type: DataTypes.TEXT,
     allowNull: false,
   },
+
   thumbnailUrl: {
     type: DataTypes.TEXT,
     allowNull: true,
   },
+
   caption: {
     type: DataTypes.TEXT,
     allowNull: true,
   },
+
   musicId: {
     type: DataTypes.STRING,
     allowNull: true,
   },
+
   filterId: {
     type: DataTypes.STRING,
     allowNull: true,
   },
+
   locationLat: {
     type: DataTypes.FLOAT,
     allowNull: true,
   },
+
   locationLng: {
     type: DataTypes.FLOAT,
     allowNull: true,
   },
+
   locationName: {
     type: DataTypes.STRING,
     allowNull: true,
   },
+
   taggedUserIds: {
     type: DataTypes.JSONB,
     allowNull: true,
     defaultValue: [],
   },
+
   visibility: {
     type: DataTypes.ENUM("public", "followers", "private"),
     allowNull: false,
     defaultValue: "public",
   },
+
   wasHereCount: {
     type: DataTypes.INTEGER,
     allowNull: false,
     defaultValue: 0,
   },
-});
 
-Reel.belongsTo(User, {
-  foreignKey: "userId",
+  // ------------------ NEW STATUS FIELD ------------------
+  status: {
+    type: DataTypes.ENUM("active", "suspended", "inactive"),
+    allowNull: false,
+    defaultValue: "active",
+  },
 });
 
 export default Reel;

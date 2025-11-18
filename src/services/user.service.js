@@ -71,9 +71,52 @@ class UserService extends BaseService {
     return user;
   }
 
+  static async create(data) {
+    // Validate required fields
+    const requiredFields = ["name", "username", "email", "phone", "gender", "password"];
+    const missingFields = requiredFields.filter(field => !data[field]);
+    
+    if (missingFields.length > 0) {
+      throw new AppError({
+        status: false,
+        message: `Missing required fields: ${missingFields.join(", ")}`,
+        httpStatus: httpStatus.BAD_REQUEST,
+      });
+    }
+
+    // Check if user already exists
+    const existingUser = await this.getDoc({ email: data.email }, { allowNull: true }).catch(() => null);
+    if (existingUser) {
+      throw new AppError({
+        status: false,
+        message: "User with this email already exists",
+        httpStatus: httpStatus.CONFLICT,
+      });
+    }
+
+    const existingUsername = await this.getDoc({ username: data.username }, { allowNull: true }).catch(() => null);
+    if (existingUsername) {
+      throw new AppError({
+        status: false,
+        message: "Username already taken",
+        httpStatus: httpStatus.CONFLICT,
+      });
+    }
+
+    // Create user (password will be hashed by beforeCreate hook)
+    const createdDoc = await this.Model.create(data);
+    const user = createdDoc.toJSON();
+    delete user.password;
+    return user;
+  }
+
   static async update(id, data) {
+    // Never allow direct password update through regular update
     delete data.password;
-    return await super.update(id, data);
+    const doc = await super.update(id, data);
+    const userData = doc.toJSON();
+    delete userData.password;
+    return userData;
   }
 
   static async updatePass(id, data) {
@@ -82,7 +125,8 @@ class UserService extends BaseService {
 
   static async deleteDoc(id) {
     const doc = await this.getDocById(id);
-    await doc.destroy({ force: true });
+    // Use soft delete (set deletedAt, don't force hard delete)
+    await doc.destroy();
   }
 }
 

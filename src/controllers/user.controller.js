@@ -32,7 +32,76 @@ class UserController extends BaseController {
     const { id } = req.params;
 
     if (!id) {
-      return await super.get(req, res, next);
+      // Get all users with followers/following
+      const customOptions = {
+        attributes: {
+          exclude: ["password"],
+          include: [
+            [
+              literal(`(
+              SELECT COUNT(*)
+              FROM "${UserFollow.tableName}" AS "followers"
+              WHERE "followers"."otherId" = "User"."id"
+            )`),
+              "followersCount",
+            ],
+            [
+              literal(`(
+              SELECT COUNT(*)
+              FROM "${UserFollow.tableName}" AS "followings"
+              WHERE "followings"."userId" = "User"."id"
+            )`),
+              "followingCount",
+            ],
+          ],
+        },
+        include: [
+          {
+            model: UserFollow,
+            as: "userFollowings",
+            attributes: ["id", "userId", "otherId"],
+            include: [
+              {
+                model: this.Service.Model,
+                as: "otherUser",
+                attributes: { exclude: ["password"] },
+              },
+            ],
+            required: false,
+          },
+          {
+            model: UserFollow,
+            as: "userFollowers",
+            attributes: ["id", "userId", "otherId"],
+            include: [
+              {
+                model: this.Service.Model,
+                as: "user",
+                attributes: { exclude: ["password"] },
+              },
+            ],
+            required: false,
+          },
+        ],
+      };
+
+      const options = this.Service.getOptions(req.query, customOptions);
+      const users = await this.Service.get(id, req.query, options);
+
+      // Ensure password is excluded from results even if service included it
+      if (Array.isArray(users)) {
+        users.forEach((u) => {
+          const userData = u.toJSON ? u.toJSON() : u;
+          delete userData.password;
+        });
+      } else if (users && users.result) {
+        users.result.forEach((u) => {
+          const userData = u.toJSON ? u.toJSON() : u;
+          delete userData.password;
+        });
+      }
+
+      return sendResponse(httpStatus.OK, res, users);
     }
 
     return this.getCurrentUser(req, res, next);
@@ -161,7 +230,7 @@ class UserController extends BaseController {
 
     const token = createToken(payload);
 
-    user = user.toJSON();
+    user = user && typeof user.toJSON === "function" ? user.toJSON() : user;
 
     const mailOptions = generateOTPEmail({ otp, from: env.SMTP_USER }, user);
     const { success } = await sendEmail(mailOptions);
@@ -210,7 +279,7 @@ class UserController extends BaseController {
       otp: await hash(String(otp), 10),
     };
 
-    user = user.toJSON();
+    user = user && typeof user.toJSON === "function" ? user.toJSON() : user;
     delete user.password;
 
     const mailOptions = generateOTPEmail({ otp, from: env.SMTP_USER }, user);
@@ -255,7 +324,7 @@ class UserController extends BaseController {
       emailVerified: true,
     };
 
-    user = user.toJSON();
+    user = user && typeof user.toJSON === "function" ? user.toJSON() : user;
 
     delete user.password;
 
@@ -281,6 +350,7 @@ class UserController extends BaseController {
     let user = await this.Service.Model.findOne({
       where: { id: userId },
       attributes: {
+        exclude: ["password"],
         include: [
           // Follower count (other users who follow this user)
           [
@@ -334,6 +404,34 @@ class UserController extends BaseController {
           ],
         ],
       },
+      include: [
+        {
+          model: UserFollow,
+          as: "userFollowings",
+          attributes: ["id", "userId", "otherId"],
+          include: [
+            {
+              model: this.Service.Model,
+              as: "otherUser",
+              attributes: { exclude: ["password"] },
+            },
+          ],
+          required: false,
+        },
+        {
+          model: UserFollow,
+          as: "userFollowers",
+          attributes: ["id", "userId", "otherId"],
+          include: [
+            {
+              model: this.Service.Model,
+              as: "user",
+              attributes: { exclude: ["password"] },
+            },
+          ],
+          required: false,
+        },
+      ],
     });
 
     if (!user) {
@@ -344,7 +442,7 @@ class UserController extends BaseController {
       });
     }
 
-    user = user.toJSON();
+    user = user && typeof user.toJSON === "function" ? user.toJSON() : user;
     delete user.password;
     sendResponse(httpStatus.OK, res, user);
   }

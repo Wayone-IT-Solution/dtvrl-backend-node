@@ -1,7 +1,7 @@
 import BaseModel from "#models/base";
-import Post from "#models/post";
-import User from "#models/user";
 import { DataTypes } from "sequelize";
+import User from "#models/user";
+import Post from "#models/post";
 
 class PostWasHere extends BaseModel {}
 
@@ -25,25 +25,21 @@ PostWasHere.initialize(
       },
       onDelete: "CASCADE",
     },
+    deletedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
   },
   {
+    paranoid: true,           // enables soft delete (uses deletedAt)
+    timestamps: true,
     indexes: [
       {
         unique: true,
-        fields: ["userId", "postId"],
+        fields: ["postId", "userId"],
       },
     ],
-  },
+  }
 );
-
-PostWasHere.belongsTo(User, {
-  foreignKey: "userId",
-  as: "user",
-});
-
-PostWasHere.belongsTo(Post, {
-  foreignKey: "postId",
-  as: "post",
-});
 
 export default PostWasHere;

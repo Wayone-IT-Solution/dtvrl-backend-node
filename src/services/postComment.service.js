@@ -15,7 +15,8 @@ class PostCommentService extends BaseService {
       include: [
         {
           model: UserService.Model,
-          attributes: ["id", "firebaseToken", "name"], // Added name for notification
+          as: "user",
+          attributes: ["id", "firebaseToken", "name"],
         },
       ],
     });
@@ -46,7 +47,7 @@ class PostCommentService extends BaseService {
       },
     };
 
-    const firebaseToken = post.User.firebaseToken;
+    const firebaseToken = post.user.firebaseToken;
 
     // Only notify if someone else commented on the post (not self-comment)
     if (Number(userId) !== post.userId) {

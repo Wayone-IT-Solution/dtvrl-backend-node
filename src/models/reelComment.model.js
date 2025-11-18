@@ -1,12 +1,16 @@
 import BaseModel from "#models/base";
-import Reel from "#models/reel";
-import User from "#models/user";
 import { DataTypes } from "sequelize";
+import User from "#models/user";
+import Reel from "#models/reel";
 
-class ReelWasHere extends BaseModel {}
+class ReelComment extends BaseModel {}
 
-ReelWasHere.initialize(
+ReelComment.initialize(
   {
+    comment: {
+      type: DataTypes.TEXT,
+      allowNull: false,
+    },
     userId: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -27,15 +31,10 @@ ReelWasHere.initialize(
     },
   },
   {
-    indexes: [
-      {
-        unique: true,
-        fields: ["userId", "reelId"],
-      },
-    ],
-  },
+    tableName: "ReelComments",
+    modelName: "ReelComment",
+    indexes: [{ fields: ["reelId"] }],
+  }
 );
 
-
-
-export default ReelWasHere;
+export default ReelComment;

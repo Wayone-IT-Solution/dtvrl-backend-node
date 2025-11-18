@@ -15,6 +15,18 @@ export const globalErrorHandler = async (error, req, res, next) => {
   console.log(error);
   // Sequelize Validation Error
   if (error instanceof ValidationError) {
+    // Check if this is actually a unique constraint violation
+    const uniqueViolation = error.errors?.find((e) => e.validatorKey === "not_unique" || e.message?.includes("must be unique"));
+    
+    if (uniqueViolation) {
+      const field = uniqueViolation.path || "Field";
+      return res.status(409).json({
+        status: false,
+        message: `${field} already exists. Please try again.`,
+        field,
+      });
+    }
+
     const messages = error.errors
       .map((e) => `${e.path}: ${e.message}`)
       .join(", ");

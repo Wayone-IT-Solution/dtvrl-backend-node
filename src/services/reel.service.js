@@ -1,5 +1,6 @@
 import Reel from "#models/reel";
 import UserFollow from "#models/userFollow";
+import { User, ReelComment, ReelLike, ReelShare, ReelView, ReelWasHere } from "../models/index.js";
 import BaseService from "#services/base";
 import sequelize from "#configs/database";
 import { Op, QueryTypes } from "sequelize";
@@ -34,7 +35,7 @@ class ReelService extends BaseService {
     page = 1,
     limit = 10,
     order = [["createdAt", "DESC"]],
-    include,
+    include = ReelService.fullIncludes,
   }) {
     const pageNum = Number(page) || 1;
     const limitNum = Number(limit) || 10;
@@ -61,6 +62,28 @@ class ReelService extends BaseService {
       },
     };
   }
+
+  // Eager-load associations (comments, likes, shares, views, wasHere)
+  static fullIncludes = [
+    { model: User, as: "user" },
+    {
+      model: ReelComment,
+      as: "comments",
+      include: [{ model: User, as: "commentUser" }],
+    },
+    {
+      model: ReelLike,
+      as: "likes",
+      include: [{ model: User, as: "likeUser" }],
+    },
+    { model: ReelShare, as: "shares" },
+    { model: ReelView, as: "views" },
+    {
+      model: ReelWasHere,
+      as: "wasHere",
+      include: [{ model: User, as: "wasHereUser" }],
+    },
+  ];
 
   static async getByUserIdWithPagination({ userId, page, limit, visibility }) {
     const where = { userId };
@@ -254,6 +277,12 @@ class ReelService extends BaseService {
         itemsPerPage: limitNum,
       },
     };
+  }
+
+  static async deleteDoc(id) {
+    const doc = await this.getDocById(id);
+    // Perform hard delete for admin
+    await doc.destroy({ force: true });
   }
 }
 

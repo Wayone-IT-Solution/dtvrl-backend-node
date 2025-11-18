@@ -1,353 +1,300 @@
-import Post from "#models/post";
-import User from "#models/user";
-import UserFollow from "#models/userFollow";
+// src/services/post.service.js
+import {
+  Post,
+  User,
+  PostComment,
+  PostLike,
+  PostShare,
+  PostView,
+  PostWasHere,
+} from "../models/index.js";
+
 import BaseService from "#services/base";
-import sequelize from "#configs/database";
 import { Op, QueryTypes } from "sequelize";
-import UserService from "#services/user";
-import UserFollowService from "#services/userFollow";
+import sequelize from "#configs/database";
+import UserFollow from "../models/userFollow.model.js";
+import UserBlockService from "#services/userBlock";
 import { session } from "#middlewares/requestSession";
 import sendNewPostNotification from "#utils/notification";
-import NotificationService from "#services/notification";
-import UserBlockService from "#services/userBlock";
 
 class PostService extends BaseService {
   static Model = Post;
 
+  // *** SAME includes as controller/service ***
+  static fullIncludes = [
+    { model: User, as: "user" },
+    {
+      model: PostComment,
+      as: "comments",
+      include: [{ model: User, as: "commentUser" }],
+    },
+    {
+      model: PostLike,
+      as: "likes",
+      include: [{ model: User, as: "likeUser" }],
+    },
+    { model: PostShare, as: "shares" },
+    { model: PostView, as: "views" },
+    {
+      model: PostWasHere,
+      as: "wasHere",
+      include: [{ model: User, as: "wasHereUser" }],
+    },
+  ];
+
+  // PAGINATION
   static async findWithPagination({
     where = {},
     page = 1,
     limit = 10,
     order = [["createdAt", "DESC"]],
-    include,
+    include = PostService.fullIncludes,
   }) {
-    const pageNum = Number(page) || 1;
-    const limitNum = Number(limit) || 10;
-    const offset = (pageNum - 1) * limitNum;
+    const offset = (page - 1) * limit;
 
     const { rows, count } = await this.Model.findAndCountAll({
       where,
       offset,
-      limit: limitNum,
+      limit,
       order,
       include,
       distinct: true,
     });
 
-    const totalPages = Math.max(1, Math.ceil(count / limitNum));
-
     return {
       result: rows,
       pagination: {
         totalItems: count,
-        totalPages,
-        currentPage: pageNum,
-        itemsPerPage: limitNum,
+        totalPages: Math.ceil(count / limit),
+        currentPage: page,
+        itemsPerPage: limit,
       },
     };
   }
 
-  static async getByUserIdWithPagination({ userId, page, limit, visibility }) {
-    const where = { userId };
-
-    if (Array.isArray(visibility) && visibility.length) {
-      where.visibility = { [Op.in]: visibility };
-    } else if (typeof visibility === "string") {
-      where.visibility = visibility;
-    }
-
-    return this.findWithPagination({ where, page, limit });
-  }
-
-  static async getByVisibilityWithPagination({
-    visibility,
+  // POSTS BY USER
+  static async getByUserIdWithPagination({
+    userId,
     page,
     limit,
-    userId,
+    include = PostService.fullIncludes,
+    where = undefined,
   }) {
-    const where = {};
-
-    if (Array.isArray(visibility) && visibility.length) {
-      where.visibility = { [Op.in]: visibility };
-    } else if (typeof visibility === "string") {
-      where.visibility = visibility;
-    }
-
-    if (userId) {
-      where.userId = userId;
-    }
-
-    return this.findWithPagination({ where, page, limit });
+    const whereObj = { ...(where || {}), userId };
+    return this.findWithPagination({
+      where: whereObj,
+      page,
+      limit,
+      include,
+    });
   }
 
-  static async getFollowerFeed({ userId, page, limit }) {
+  // POSTS BY VISIBILITY
+  static async getByVisibilityWithPagination({
+    visibility,
+    userId,
+    page,
+    limit,
+    include = PostService.fullIncludes,
+    where = undefined,
+  }) {
+    const whereObj = { ...(where || {}), visibility };
+    if (userId) whereObj.userId = userId;
+    return this.findWithPagination({ where: whereObj, page, limit, include });
+  }
+
+  // FOLLOWER FEED
+  static async getFollowerFeed({ userId, page, limit, include = PostService.fullIncludes, where = {} }) {
     const follows = await UserFollow.findAll({
       where: { userId },
       attributes: ["otherId"],
       raw: true,
     });
 
-    const blockedUserIds = await UserBlockService.getBlockedUserIdsFor(userId);
+    const blocked = await UserBlockService.getBlockedUserIdsFor(userId);
 
-    const followedIds = follows.map((row) => row.otherId);
-    const allowedAuthorIds = followedIds.filter(
-      (followedId) => !blockedUserIds.includes(followedId),
-    );
-    if (!allowedAuthorIds.includes(userId)) {
-      allowedAuthorIds.push(userId);
-    }
+    const allowedUserIds = follows.map((f) => f.otherId).filter((id) => !blocked.includes(id));
+    allowedUserIds.push(userId);
 
-    if (!allowedAuthorIds.length) {
-      return {
-        result: [],
-        pagination: {
-          totalItems: 0,
-          totalPages: 0,
-          currentPage: Number(page) || 1,
-          itemsPerPage: Number(limit) || 10,
-        },
-      };
-    }
-
-    const where = {
-      userId: { [Op.in]: allowedAuthorIds },
+    const whereObj = {
+      ...(where || {}),
+      userId: { [Op.in]: allowedUserIds },
       visibility: { [Op.in]: ["public", "followers"] },
     };
 
     return this.findWithPagination({
-      where,
+      where: whereObj,
       page,
       limit,
-      order: [["createdAt", "DESC"]],
+      include,
     });
   }
 
-  static async getHeatmapData({ bounds, bucketSize = 0.5 }) {
-    if (!bounds) return [];
-    const { northEast, southWest } = bounds;
-
-    const posts = await this.Model.findAll({
-      attributes: ["locationLat", "locationLng"],
-      include: [
-        {
-          model: User,
-          attributes: [],
-          where: { isPrivate: false },
-          required: true,
-        },
-      ],
-      where: {
-        visibility: "public",
-        locationLat: {
-          [Op.between]: [southWest.lat, northEast.lat],
-        },
-        locationLng: {
-          [Op.between]: [southWest.lng, northEast.lng],
-        },
-      },
-      raw: true,
-    });
-
-    const buckets = new Map();
-    const size = bucketSize || 0.5;
-
-    for (const post of posts) {
-      if (
-        post.locationLat === null ||
-        post.locationLat === undefined ||
-        post.locationLng === null ||
-        post.locationLng === undefined
-      ) {
-        continue;
-      }
-
-      const latBucket =
-        Math.round((Number(post.locationLat) || 0) / size) * size;
-      const lngBucket =
-        Math.round((Number(post.locationLng) || 0) / size) * size;
-
-      const key = `${latBucket}:${lngBucket}`;
-      if (!buckets.has(key)) {
-        buckets.set(key, { lat: latBucket, lng: lngBucket, count: 0 });
-      }
-      buckets.get(key).count += 1;
-    }
-
-    return Array.from(buckets.values());
-  }
-
-  static async getNearbyPosts({ lat, lng, radius, page = 1, limit = 20 }) {
-    const pageNum = Number(page) || 1;
-    const limitNum = Number(limit) || 20;
-    const offset = (pageNum - 1) * limitNum;
-
-    const postTable = this.Model.getTableName().toString();
-    const userTable = User.getTableName().toString();
-
-    const distanceExpression = `
-      6371 * acos(
-        LEAST(
-          1,
-          GREATEST(
-            -1,
-            cos(radians(:lat)) * cos(radians(p."locationLat")) *
-            cos(radians(p."locationLng") - radians(:lng)) +
-            sin(radians(:lat)) * sin(radians(p."locationLat"))
-          )
-        )
-      )
-    `;
-
-    const baseWhere = `
-      p."deletedAt" IS NULL
-      AND p."visibility" = 'public'
-      AND u."isPrivate" = false
-      AND p."locationLat" IS NOT NULL
-      AND p."locationLng" IS NOT NULL
-    `;
-
-    const replacements = {
-      lat,
-      lng,
-      radius,
-      limit: limitNum,
-      offset,
-    };
-
-    const items = await sequelize.query(
-      `
-      SELECT
-        p.*,
-        ${distanceExpression} AS "distanceKm"
-      FROM "${postTable}" AS p
-      INNER JOIN "${userTable}" AS u ON u."id" = p."userId"
-      WHERE
-        ${baseWhere}
-        AND ${distanceExpression} <= :radius
-      ORDER BY "distanceKm" ASC
-      LIMIT :limit OFFSET :offset;
-    `,
-      { replacements, type: QueryTypes.SELECT },
-    );
-
-    const [{ count: totalItemsRaw } = { count: 0 }] = await sequelize.query(
-      `
-      SELECT COUNT(*)::int AS count
-      FROM "${postTable}" AS p
-      INNER JOIN "${userTable}" AS u ON u."id" = p."userId"
-      WHERE
-        ${baseWhere}
-        AND ${distanceExpression} <= :radius;
-    `,
-      { replacements, type: QueryTypes.SELECT },
-    );
-
-    const totalItems = Number(totalItemsRaw) || 0;
-    const totalPages =
-      limitNum === 0 ? 0 : Math.max(1, Math.ceil(totalItems / limitNum));
-
-    const serialized = items.map((item) => ({
-      ...item,
-      distanceKm: Number(item.distanceKm),
-    }));
-
-    return {
-      result: serialized,
-      pagination: {
-        totalItems,
-        totalPages,
-        currentPage: pageNum,
-        itemsPerPage: limitNum,
-      },
-    };
-  }
-
+  // CREATE POST + NOTIFY FOLLOWERS
   static async create(data) {
     const userId = session.get("userId");
+
     const post = await super.create(data);
 
-    const customOptions = {
-      include: [
-        {
-          model: UserService.Model,
-          as: "user",
-          attributes: ["firebaseToken", "id"],
-        },
-      ],
-      attributes: ["id", "userId"],
-    };
-
-    const options = UserFollowService.getOptions(
-      { pagination: false, otherId: userId },
-      customOptions,
-    );
-
-    const [followers, user] = await Promise.all([
-      UserFollowService.get(null, { otherId: userId }, options),
-      UserService.getDocById(userId),
-    ]);
-
-    const notificationPayloads = [];
-
-    const firebaseTokens = followers.map((ele) => {
-      const notificationData = {
-        actorId: userId,
-        recipientId: ele.user.id,
-        type: "POST_CREATED",
-        status: "UNREAD",
-        title: `New post by ${user.name}`,
-        message: post.caption?.slice(20),
-        entityId: post.id,
-        metadata: null,
-        scheduledFor: null,
-        readAt: null,
-        expiresAt: null,
-      };
-
-      notificationPayloads.push(notificationData);
-      return ele.user.firebaseToken;
+    const followers = await UserFollow.findAll({
+      where: { otherId: userId },
+      include: [{ model: User, as: "user" }],
     });
 
-    const notification = {
-      title: `New Post from ${user.username}`,
-      body: "Check out our latest update – you’ll love it!",
-    };
+    const tokens = followers.map((f) => f.user.firebaseToken).filter(Boolean);
 
-    const tokenData = {
-      notification,
-      data: {
-        type: "POST_CREATED",
-        id: String(post.id),
-        userId: String(userId),
+    sendNewPostNotification(tokens, {
+      notification: {
+        title: "New Post",
+        body: "Someone you follow just posted",
       },
-    };
-
-    sendNewPostNotification(firebaseTokens, tokenData)
-      .then((ele) => {
-        console.log(ele);
-      })
-      .catch((e) => {
-        console.log(e);
-      });
-
-    await NotificationService.Model.bulkCreate(notificationPayloads, {
-      transaction: session.get("transaction"),
     });
 
     return post;
   }
 
+  // UPDATE POST
   static async updateDocById(id, data) {
     return super.update(id, data);
   }
 
-  static async deleteDoc(id) {
-    const doc = await this.Model.findDocById(id);
-    await doc.destroy({ force: true });
+  // DELETE POST
+  static async deleteDocById(id) {
+    const post = await this.Model.findByPk(id);
+    if (!post) return;
+    await post.destroy({ force: true });
   }
 
-  static async deleteDocById(id) {
-    return this.deleteDoc(id);
+  // ----------------- NEW: HEATMAP -----------------
+  /**
+   * getHeatmapData({ bounds, bucketSize })
+   * bounds: { northEast: {lat,lng}, southWest: {lat,lng} } OR raw query params
+   * bucketSize: size of grid in degrees (default 0.5)
+   *
+   * This is a simple grid aggregation (no PostGIS). It groups posts by bucket.
+   */
+  static async getHeatmapData({ bounds, bucketSize = 0.5 }) {
+    // bounds can be { northEast, southWest } or raw { ne_lat, ne_lng, sw_lat, sw_lng }
+    let neLat, neLng, swLat, swLng;
+    if (bounds?.northEast && bounds?.southWest) {
+      neLat = Number(bounds.northEast.lat);
+      neLng = Number(bounds.northEast.lng);
+      swLat = Number(bounds.southWest.lat);
+      swLng = Number(bounds.southWest.lng);
+    } else {
+      neLat = Number(bounds?.ne_lat || bounds?.neLat);
+      neLng = Number(bounds?.ne_lng || bounds?.neLng);
+      swLat = Number(bounds?.sw_lat || bounds?.swLat);
+      swLng = Number(bounds?.sw_lng || bounds?.swLng);
+    }
+
+    if ([neLat, neLng, swLat, swLng].some((v) => Number.isNaN(v))) {
+      throw new Error("Invalid bounds for heatmap");
+    }
+
+    // SQL: compute bucket indexes and count
+    const sql = `
+      SELECT
+        FLOOR(("locationLat" / :bucketSize)) AS lat_bucket,
+        FLOOR(("locationLng" / :bucketSize)) AS lng_bucket,
+        COUNT(*) AS count
+      FROM "Posts"
+      WHERE "locationLat" BETWEEN :swLat AND :neLat
+        AND "locationLng" BETWEEN :swLng AND :neLng
+        AND "locationLat" IS NOT NULL
+        AND "locationLng" IS NOT NULL
+        AND "status" = 'active'
+      GROUP BY lat_bucket, lng_bucket;
+    `;
+
+    const rows = await sequelize.query(sql, {
+      replacements: { bucketSize, swLat, neLat, swLng, neLng },
+      type: QueryTypes.SELECT,
+    });
+
+    // map back to lat/lng center for each bucket
+    const result = rows.map((r) => {
+      const lat = (Number(r.lat_bucket) + 0.5) * bucketSize;
+      const lng = (Number(r.lng_bucket) + 0.5) * bucketSize;
+      return { lat, lng, count: Number(r.count) };
+    });
+
+    return result;
+  }
+
+  // ----------------- NEW: NEARBY -----------------
+  /**
+   * getNearbyPosts({ lat, lng, radius (km), page, limit })
+   * Uses Haversine formula in SQL.
+   */
+  static async getNearbyPosts({ lat, lng, radius = 50, page = 1, limit = 10, include = PostService.fullIncludes, where = {} }) {
+    const offset = (page - 1) * limit;
+    // Haversine in km (Earth radius ~6371)
+    const haversine = `
+      (6371 * acos(
+         least(1.0, cos(radians(:lat)) * cos(radians("locationLat")) * cos(radians("locationLng") - radians(:lng))
+         + sin(radians(:lat)) * sin(radians("locationLat")))
+      ))
+    `;
+
+    // Note: filter out null lat/lng
+    const whereSql = `
+      WHERE "locationLat" IS NOT NULL
+        AND "locationLng" IS NOT NULL
+        AND ${haversine} <= :radius
+        AND "status" = 'active'
+    `;
+
+    const sql = `
+      SELECT p.*, ${haversine} AS distance
+      FROM "Posts" p
+      ${whereSql}
+      ORDER BY distance ASC
+      LIMIT :limit OFFSET :offset;
+    `;
+
+    const rows = await sequelize.query(sql, {
+      replacements: { lat, lng, lng: lng, radius, limit, offset },
+      model: Post,
+      mapToModel: true,
+      type: QueryTypes.SELECT,
+    });
+
+    // count total matching (approx) — run a simpler count
+    const countSql = `
+      SELECT COUNT(*)::int AS count
+      FROM "Posts" p
+      ${whereSql}
+    `;
+    const countRes = await sequelize.query(countSql, {
+      replacements: { lat, lng, lng: lng, radius },
+      type: QueryTypes.SELECT,
+    });
+
+    const total = Number(countRes[0]?.count || 0);
+
+    // We don't eager-load associations via SQL result; load includes by IDs
+    const ids = rows.map((r) => r.id);
+    const postsWithIncludes = await Post.findAll({
+      where: { id: { [Op.in]: ids } },
+      include,
+      order: [["createdAt", "DESC"]],
+    });
+
+    return {
+      result: postsWithIncludes,
+      pagination: {
+        totalItems: total,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+        itemsPerPage: limit,
+      },
+    };
+  }
+  static async deleteDoc(id) {
+    const doc = await this.getDocById(id);
+    // Perform hard delete for admin
+    await doc.destroy({ force: true });
   }
 }
 

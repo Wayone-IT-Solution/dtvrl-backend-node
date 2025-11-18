@@ -1,19 +1,18 @@
-// src/models/postView.js
 import BaseModel from "#models/base";
 import { DataTypes } from "sequelize";
 import User from "#models/user";
-import Post from "#models/post";
+import Reel from "#models/reel";
 
-class PostView extends BaseModel {}
+class ReelView extends BaseModel {}
 
-PostView.initialize(
+ReelView.initialize(
   {
-    postId: {
+    reelId: {
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: Post,
-        key: Post.primaryKeyAttribute,
+        model: Reel,
+        key: Reel.primaryKeyAttribute,
       },
       onDelete: "CASCADE",
     },
@@ -26,20 +25,15 @@ PostView.initialize(
       },
       onDelete: "CASCADE",
     },
-    duration: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      defaultValue: 1,
-    },
   },
   {
     indexes: [
       {
         unique: true,
-        fields: ["postId", "userId"],
+        fields: ["reelId", "userId"],
       },
     ],
   }
 );
 
-export default PostView;
+export default ReelView;

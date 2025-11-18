@@ -17,6 +17,7 @@ import requestSessionMiddleware from "#middlewares/requestSession";
 const app = express();
 // Ensure the database connection is established before starting the app
 
+
 await sequelize.authenticate();
 // await sequelize.sync({ alter: true });
 
