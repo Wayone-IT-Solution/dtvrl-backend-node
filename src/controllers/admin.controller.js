@@ -384,12 +384,66 @@ class AdminController extends BaseController {
     sendResponse(httpStatus.CREATED, res, data);
   }
 
-  static async updatePost(req, res) {
-    const { id } = req.params;
-    const data = await PostService.update(id, req.body);
+static async updatePost(req, res) {
+  const { id } = req.params;
+  const { status } = req.query;
+  const { caption } = req.body;
 
-    sendResponse(httpStatus.OK, res, data);
+  console.log("Post ID:", id);
+  console.log("Status:", status);
+  console.log("Caption:", caption);
+
+  try {
+    // Import Post model
+    const Post = (await import("#models/post")).default;
+
+    // Find post by ID
+    const post = await Post.findByPk(id);
+
+    if (!post) {
+      return sendResponse(httpStatus.NOT_FOUND, res, {
+        error: "Post not found",
+      });
+    }
+
+    // Allowed status list
+    const allowedStatuses = ["active", "suspended", "inactive"];
+    if (status && !allowedStatuses.includes(status)) {
+      return sendResponse(httpStatus.BAD_REQUEST, res, {
+        error: "Invalid status. Must be: active, suspended, or inactive",
+      });
+    }
+
+    // Update fields
+    if (status) post.status = status;
+    if (caption) post.caption = caption;
+
+    // Save fields safely
+    await post.save({
+      fields: ["status", "caption"],
+    });
+
+    console.log(
+      "Successfully updated post:",
+      post.id,
+      "status:",
+      post.status,
+      "caption:",
+      post.caption
+    );
+
+    sendResponse(httpStatus.OK, res, {
+      message: "Post updated successfully",
+      data: post,
+    });
+
+  } catch (error) {
+    console.error("Update post error:", error);
+    sendResponse(httpStatus.BAD_REQUEST, res, {
+      error: error.message,
+    });
   }
+}
 
   static async deletePost(req, res) {
     const { id } = req.params;
@@ -665,10 +719,12 @@ class AdminController extends BaseController {
 static async updateReel(req, res) {
   const { id } = req.params;
   const { status } = req.query;
+  const {caption } = req.body;
 
   console.log('ID:', id);
   console.log('Query params:', req.query);
   console.log('Status:', status);
+  console.log('body', req.body);
 
   try {
     // Import the Reel model directly
@@ -693,6 +749,7 @@ static async updateReel(req, res) {
 
     // Update ONLY the status field - this avoids userId validation issues
     reel.status = status;
+    reel.caption = caption;
     
     // Save only the status field
     await reel.save({ fields: ['status'] });

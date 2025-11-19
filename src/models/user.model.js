@@ -28,7 +28,7 @@ User.initialize(
     firebaseToken: { type: DataTypes.STRING },
     emailVerified: { type: DataTypes.BOOLEAN, defaultValue: false },
     status: {
-    type: DataTypes.ENUM("active", "suspended", "inactive", "blocked", "pending"),
+    type: DataTypes.ENUM("active", "suspended", "inactive"),
     allowNull: false,
     defaultValue: "active",
   },
