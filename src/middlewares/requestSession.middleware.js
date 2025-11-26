@@ -34,7 +34,26 @@ export default function () {
     session.run(async () => {
       session.set("files", req.files ?? []);
       if (req.method !== "GET" && req.method !== "OPTIONS") {
-        session.set("transaction", await sequelize.transaction());
+        try {
+          const transaction = await sequelize.transaction();
+          session.set("transaction", transaction);
+
+          // Failsafe: ensure a transaction is cleaned up if a handler forgets to commit/rollback
+          let cleanedUp = false;
+          const cleanup = async () => {
+            if (cleanedUp || transaction.finished) return;
+            cleanedUp = true;
+            try {
+              await transaction.rollback();
+            } catch (err) {
+              console.error("Transaction cleanup rollback failed:", err);
+            }
+          };
+          res.on("finish", cleanup);
+          res.on("close", cleanup);
+        } catch (err) {
+          return next(err);
+        }
       }
       next();
     });

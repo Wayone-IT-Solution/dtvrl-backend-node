@@ -10,7 +10,12 @@ import { session } from "#middlewares/requestSession";
 
 export const globalErrorHandler = async (error, req, res, next) => {
   const transaction = await session.get("transaction");
-  if (transaction) await transaction.rollback();
+  if (transaction)
+    try{
+      await transaction.rollback();
+    } catch(err) {
+      console.error("Transaction rollback error:", err);
+    }
 
   console.log(error);
   // Sequelize Validation Error
