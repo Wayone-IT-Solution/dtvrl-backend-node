@@ -8,40 +8,54 @@ import ReelLike from "#models/reelLike";
 class ReelLikeController extends BaseController {
   static Service = ReelLikeService;
 
-  static async create(req, res) {
-    try {
-      const userId = session.get("userId");
-      const { reelId } = req.body;
+static async create(req, res) {
+  try {
+    const userId = session.get("userId");
+    const { reelId } = req.body;
 
-      if (!reelId) {
-        return sendResponse(httpStatus.BAD_REQUEST, res, null, "reelId is required");
-      }
+    if (!reelId) {
+      return sendResponse(httpStatus.BAD_REQUEST, res, null, "reelId is required");
+    }
 
-      req.body.userId = userId;
+    req.body.userId = userId;
 
-      // check existing like (including soft-deleted records)
-      const existing = await ReelLike.findOne({
-        where: { userId, reelId },
-        paranoid: false,
-      });
+    const existing = await ReelLike.findOne({
+      where: { userId, reelId },
+      paranoid: false,
+    });
 
-      if (existing) {
-        await existing.destroy({ force: true });
-      } else {
-        await ReelLikeService.create(req.body);
-      }
-
+    if (existing && existing.deletedAt === null) {
+      // User already liked → unlike
+      await existing.destroy(); // soft delete
       const likeCount = await ReelLike.count({ where: { reelId } });
 
       return sendResponse(httpStatus.OK, res, {
         reelId,
-        liked: !existing,
+        liked: false,
         totalLikes: likeCount,
       });
-    } catch (error) {
-      throw error;
+    } 
+    
+    if (existing && existing.deletedAt !== null) {
+      // Previously unliked → restore
+      await existing.restore();
+    } else {
+      // New like
+      await ReelLike.create({ userId, reelId });
     }
+
+    const likeCount = await ReelLike.count({ where: { reelId } });
+
+    return sendResponse(httpStatus.OK, res, {
+      reelId,
+      liked: true,
+      totalLikes: likeCount,
+    });
+  } catch (error) {
+    throw error;
   }
+}
+
 }
 
 export default ReelLikeController;

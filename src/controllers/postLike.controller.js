@@ -9,41 +9,55 @@ import PostLike from "#models/postLike";
 class PostLikeController extends BaseController {
   static Service = PostLikeService;
 
-  static async create(req, res) {
-    try {
-      const userId = session.get("userId");
-      const { postId } = req.body;
+static async create(req, res) {
+  try {
+    const userId = session.get("userId");
+    const { postId } = req.body;
 
-      if (!postId) {
-        return sendResponse(httpStatus.BAD_REQUEST, res, null, "postId is required");
-      }
+    if (!postId) {
+      return sendResponse(httpStatus.BAD_REQUEST, res, null, "postId is required");
+    }
 
-      req.body.userId = userId;
+    req.body.userId = userId;
 
-      // check existing like (including soft-deleted records)
-      const existing = await PostLike.findOne({
-        where: { userId, postId },
-        paranoid: false,  // ✅ Include soft-deleted records
-      });
+    // Check if already liked (include deleted)
+    const existing = await PostLike.findOne({
+      where: { userId, postId },
+      paranoid: false,
+    });
 
-      if (existing) {
-        // Force permanent delete to avoid unique constraint violation
-        await existing.destroy({ force: true });  // ✅ Permanent delete
-      } else {
-        await PostLikeService.create(req.body);
-      }
-
+    if (existing && existing.deletedAt === null) {
+      // Already liked → UNLIKE
+      await existing.destroy();           // soft delete
       const likeCount = await PostLike.count({ where: { postId } });
 
       return sendResponse(httpStatus.OK, res, {
         postId,
-        liked: !existing,
+        liked: false,
         totalLikes: likeCount,
       });
-    } catch (error) {
-      throw error;
     }
+
+    if (existing && existing.deletedAt !== null) {
+      // Previously unliked → RESTORE
+      await existing.restore();
+    } else {
+      // First time like
+      await PostLike.create({ userId, postId });
+    }
+
+    const likeCount = await PostLike.count({ where: { postId } });
+
+    return sendResponse(httpStatus.OK, res, {
+      postId,
+      liked: true,
+      totalLikes: likeCount,
+    });
+  } catch (error) {
+    throw error;
   }
+}
+
 }
 
 export default PostLikeController;

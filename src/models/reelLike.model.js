@@ -27,6 +27,8 @@ ReelLike.initialize(
     },
   },
   {
+    paranoid: true, // ✅ ENABLE SOFT DELETE
+    deletedAt: "deletedAt",
     indexes: [
       {
         unique: true,
